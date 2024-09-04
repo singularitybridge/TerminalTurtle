@@ -1,7 +1,7 @@
 import request from 'supertest';
 import { createApiServer } from '../src/server/apiServer';
 import { executeCommand } from '../src/executor/commandExecutor';
-import { FileManager } from '../src/executor/fileManager';
+import * as fileOperations from '../src/executor/fileManager';
 
 jest.mock('../src/executor/commandExecutor');
 jest.mock('../src/executor/fileManager');
@@ -39,24 +39,24 @@ describe('API Server', () => {
   describe('POST /file-operation', () => {
     it('should perform file operations and return the result', async () => {
       const mockResult = ['file1', 'file2'];
-      (FileManager.prototype.listFiles as jest.Mock).mockResolvedValue(mockResult);
+      (fileOperations.listFiles as jest.Mock).mockResolvedValue(mockResult);
 
       const response = await request(app)
         .post('/file-operation')
-        .send({ operation: 'list', path: '/test/path' });
+        .send({ operation: 'list', path: 'test/path' });
 
       expect(response.status).toBe(200);
       expect(response.body).toEqual({ result: mockResult });
-      expect(FileManager.prototype.listFiles).toHaveBeenCalledWith('/test/path', undefined);
+      expect(fileOperations.listFiles).toHaveBeenCalledWith('/test/working/directory/test/path', undefined);
     });
 
     it('should handle errors during file operations', async () => {
       const mockError = new Error('File operation failed');
-      (FileManager.prototype.listFiles as jest.Mock).mockRejectedValue(mockError);
+      (fileOperations.listFiles as jest.Mock).mockRejectedValue(mockError);
 
       const response = await request(app)
         .post('/file-operation')
-        .send({ operation: 'list', path: '/test/path' });
+        .send({ operation: 'list', path: 'test/path' });
 
       expect(response.status).toBe(500);
       expect(response.body).toEqual({ error: 'File operation failed' });

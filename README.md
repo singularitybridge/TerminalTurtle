@@ -7,7 +7,7 @@ The AI Agent Executor is a secure, containerized environment that allows an AI a
 - Command Execution: Execute whitelisted shell commands
 - File Management: List, create, read, and update files and directories
 - Code Execution: Allow AI agent to write code to files and execute them
-- Security: Run operations within a Docker container with command whitelisting and secure file access controls
+- Security: Run operations within a Docker container with command whitelisting, input sanitization, and secure file access controls
 - REST API: Expose functionality through a RESTful API
 - Configuration: Use environment variables for setup and sensitive information
 
@@ -26,7 +26,7 @@ The AI Agent Executor is a secure, containerized environment that allows an AI a
 
 3. Set up environment variables:
    - Copy `config/.env.example` to `.env`
-   - Fill in the required values in `.env`
+   - Fill in the required values in `.env` (PORT, WORKING_DIRECTORY, AUTH_TOKEN)
 
 4. Build the project:
    ```
@@ -40,12 +40,13 @@ The AI Agent Executor is a secure, containerized environment that allows an AI a
 
 ## Usage
 
-The AI Agent Executor now uses a REST API for communication. Here are some example operations:
+The AI Agent Executor uses a REST API for communication. Here are some example operations:
 
 1. Execute a command:
    ```bash
    curl -X POST http://localhost:3000/execute \
      -H "Content-Type: application/json" \
+     -H "Authorization: Bearer YOUR_AUTH_TOKEN" \
      -d '{"command": "git clone https://github.com/example/repo.git"}'
    ```
 
@@ -53,13 +54,15 @@ The AI Agent Executor now uses a REST API for communication. Here are some examp
    ```bash
    curl -X POST http://localhost:3000/file-operation \
      -H "Content-Type: application/json" \
-     -d '{"operation": "list", "path": "./repo"}'
+     -H "Authorization: Bearer YOUR_AUTH_TOKEN" \
+     -d '{"operation": "list", "path": "./repo", "recursive": true}'
    ```
 
 3. Read a file:
    ```bash
    curl -X POST http://localhost:3000/file-operation \
      -H "Content-Type: application/json" \
+     -H "Authorization: Bearer YOUR_AUTH_TOKEN" \
      -d '{"operation": "read", "path": "./repo/README.md"}'
    ```
 
@@ -67,28 +70,47 @@ The AI Agent Executor now uses a REST API for communication. Here are some examp
    ```bash
    curl -X POST http://localhost:3000/file-operation \
      -H "Content-Type: application/json" \
+     -H "Authorization: Bearer YOUR_AUTH_TOKEN" \
      -d '{"operation": "write", "path": "./repo/script.ts", "content": "console.log(\"Hello, World!\");"}'
    ```
 
-5. Execute a script:
+5. Create a directory:
+   ```bash
+   curl -X POST http://localhost:3000/file-operation \
+     -H "Content-Type: application/json" \
+     -H "Authorization: Bearer YOUR_AUTH_TOKEN" \
+     -d '{"operation": "createDir", "path": "./repo/newdir"}'
+   ```
+
+6. Execute a script:
    ```bash
    curl -X POST http://localhost:3000/execute \
      -H "Content-Type: application/json" \
+     -H "Authorization: Bearer YOUR_AUTH_TOKEN" \
      -d '{"command": "node ./repo/script.ts"}'
    ```
 
-6. Stop execution:
+7. Stop execution:
    ```bash
-   curl -X POST http://localhost:3000/stop-execution
+   curl -X POST http://localhost:3000/stop-execution \
+     -H "Authorization: Bearer YOUR_AUTH_TOKEN"
    ```
 
 ## Security
 
 - All operations run within a Docker container
-- Commands are whitelisted
+- Commands are whitelisted (git, npm, node, python, pip)
 - File access is controlled and limited to a specific working directory
-- Authentication is required to access the API (implement this using middleware)
-- Rate limiting should be implemented to prevent abuse
+- Input sanitization is implemented to prevent injection attacks
+- Authentication is required to access the API (using AUTH_TOKEN)
+- Rate limiting is implemented to prevent abuse (100 requests per minute per client)
+
+## Development
+
+For development purposes, you can use the following npm scripts:
+
+- `npm run dev`: Start the server using ts-node for development
+- `npm run lint`: Run ESLint to check for code style issues
 
 ## Testing
 
