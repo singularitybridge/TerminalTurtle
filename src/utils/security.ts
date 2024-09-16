@@ -6,11 +6,16 @@ const whitelistedCommands = [
   'node',
   'python',
   'pip',
+  'pwd',
+  'curl', // Added curl to the whitelist
 ];
 
 export const isCommandWhitelisted = (command: string): boolean => {
   const commandBase = command.split(' ')[0];
   const isWhitelisted = whitelistedCommands.includes(commandBase);
+  
+  // Add this log statement to see what's being checked
+  logger.info(`Checking command: ${commandBase}, isWhitelisted: ${isWhitelisted}`);
   
   if (!isWhitelisted) {
     logger.warn(`Attempted to execute non-whitelisted command: ${command}`);
