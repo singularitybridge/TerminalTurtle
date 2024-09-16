@@ -5,9 +5,15 @@ import { logger } from '../utils/logging';
 
 /**
  * Resolve the full path based on the working directory and provided file path.
+ * Ensures the path stays within the working directory.
  */
-const resolvePath = (workingDirectory: string, filePath: string): string =>
-  path.resolve(workingDirectory, filePath);
+const resolvePath = (workingDirectory: string, filePath: string): string => {
+  const fullPath = path.resolve(workingDirectory, filePath);
+  if (!fullPath.startsWith(workingDirectory)) {
+    throw new Error('Attempt to access files outside of working directory');
+  }
+  return fullPath;
+};
 
 /**
  * Recursively list all files in a directory.
@@ -110,7 +116,7 @@ export const updateFile = async (
   fullPath: string,
   content: string,
   mode: 'overwrite' | 'append'
-): Promise<void> => {
+  ): Promise<void> => {
   logger.info(`Updating file ${fullPath} with mode ${mode}`);
   try {
     if (mode === 'overwrite') {
