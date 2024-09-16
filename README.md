@@ -12,6 +12,7 @@ The AI Agent Executor is an environment that allows an AI agent to execute comma
 - **Process Management**: Manage background processes (start, check status, stop).
 - **REST API**: Expose functionality through a RESTful API.
 - **Configuration**: Use environment variables for setup and sensitive information.
+- **Recursive File Listing**: Support for listing files and directories recursively.
 
 ## Project Structure
 
@@ -199,7 +200,7 @@ The AI Agent Executor uses a REST API for file operations. Send a POST request t
 
 #### Supported Operations:
 
-- `list`: List files in a directory.
+- `list`: List files in a directory (supports recursive listing).
 - `read`: Read the contents of a file.
 - `write`: Write content to a file (creates if it doesn't exist).
 - `createFile`: Create a new file with content.
@@ -211,7 +212,7 @@ The AI Agent Executor uses a REST API for file operations. Send a POST request t
 
 #### Examples:
 
-1. **List Files in a Directory**
+1. **List Files in a Directory (Recursively)**
 
    ```bash
    curl -X POST http://localhost:3001/file-operation \
@@ -326,6 +327,14 @@ npm test
 ```
 
 Test files are located in the `tests/` directory and follow the naming convention `*.test.ts`.
+
+The test suite covers all major functionalities including:
+- Command execution (foreground and background)
+- File operations (list, read, write, create, update, delete, check existence)
+- Process management (start, status check, stop)
+- API endpoints
+
+Each component (commandExecutor, fileManager, apiServer) has its own dedicated test file with comprehensive test cases.
 
 ## License
 

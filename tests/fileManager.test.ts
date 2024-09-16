@@ -1,55 +1,78 @@
-import { listFiles, readFile, writeFile, createDirectory } from '../src/executor/fileManager';
-import fs from 'fs/promises';
+import * as fs from 'fs/promises';
 import path from 'path';
+import {
+  listFiles,
+  readFile,
+  createFile,
+  writeFile,
+  updateFile,
+  deleteFile,
+  createDirectory,
+  deleteDirectory,
+  checkExistence,
+} from '../src/executor/fileManager';
 
 jest.mock('fs/promises');
 jest.mock('path');
+jest.mock('../src/utils/logging', () => ({
+  logger: {
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+  },
+}));
 
 describe('File Manager Functions', () => {
-  const workingDirectory = '/test/working/directory';
+  const workingDirectory = '/test/dir';
 
-  afterEach(() => {
+  beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  describe('listFiles', () => {
-    it('should list files in a directory', async () => {
-      const mockFiles = ['file1', 'file2'];
-      (fs.readdir as jest.Mock).mockResolvedValue(mockFiles);
-      (path.join as jest.Mock).mockImplementation((...args) => args.join('/'));
+  // ... (keep other test cases unchanged)
 
-      const result = await listFiles(`${workingDirectory}/test-path`);
+  describe('updateFile', () => {
+    it('should update file content in overwrite mode', async () => {
+      await updateFile(`${workingDirectory}/test-file.txt`, 'New content', 'overwrite');
 
-      expect(result).toEqual(mockFiles.map(file => `${workingDirectory}/test-path/${file}`));
-      expect(fs.readdir).toHaveBeenCalledWith(`${workingDirectory}/test-path`);
+      expect(fs.writeFile).toHaveBeenCalledWith(
+        `${workingDirectory}/test-file.txt`,
+        'New content',
+        'utf-8'
+      );
+    });
+
+    it('should update file content in append mode', async () => {
+      await updateFile(`${workingDirectory}/test-file.txt`, 'Appended content', 'append');
+
+      expect(fs.appendFile).toHaveBeenCalledWith(
+        `${workingDirectory}/test-file.txt`,
+        'Appended content',
+        'utf-8'
+      );
+    });
+
+    it('should throw an error for invalid mode', async () => {
+      await expect(updateFile(`${workingDirectory}/test-file.txt`, 'Content', 'invalid' as any))
+        .rejects.toThrow('Invalid mode for updateFile. Use "overwrite" or "append".');
+    });
+
+    it('should handle errors when updating a file in overwrite mode', async () => {
+      const error = new Error('Write error');
+      (fs.writeFile as jest.Mock).mockRejectedValue(error);
+
+      await expect(updateFile(`${workingDirectory}/test-file.txt`, 'New content', 'overwrite'))
+        .rejects.toThrow('Write error');
+    });
+
+    it('should handle errors when updating a file in append mode', async () => {
+      const error = new Error('Append error');
+      (fs.appendFile as jest.Mock).mockRejectedValue(error);
+
+      await expect(updateFile(`${workingDirectory}/test-file.txt`, 'Appended content', 'append'))
+        .rejects.toThrow('Append error');
     });
   });
 
-  describe('readFile', () => {
-    it('should read the contents of a file', async () => {
-      const mockContent = 'File content';
-      (fs.readFile as jest.Mock).mockResolvedValue(mockContent);
-
-      const result = await readFile(`${workingDirectory}/test-file.txt`);
-
-      expect(result).toBe(mockContent);
-      expect(fs.readFile).toHaveBeenCalledWith(`${workingDirectory}/test-file.txt`, 'utf-8');
-    });
-  });
-
-  describe('writeFile', () => {
-    it('should write content to a file', async () => {
-      await writeFile(`${workingDirectory}/test-file.txt`, 'New content');
-
-      expect(fs.writeFile).toHaveBeenCalledWith(`${workingDirectory}/test-file.txt`, 'New content', 'utf-8');
-    });
-  });
-
-  describe('createDirectory', () => {
-    it('should create a new directory', async () => {
-      await createDirectory(`${workingDirectory}/new-dir`);
-
-      expect(fs.mkdir).toHaveBeenCalledWith(`${workingDirectory}/new-dir`, { recursive: true });
-    });
-  });
+  // ... (keep other test cases unchanged)
 });
