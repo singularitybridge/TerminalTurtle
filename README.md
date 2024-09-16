@@ -18,8 +18,7 @@ The AI Agent Executor is an environment that allows an AI agent to execute comma
 
 ```
 ai-agent-executor/
-├── config/
-│   └── .env.example
+├── .env.example
 ├── src/
 │   ├── executor/
 │   │   ├── commandExecutor.ts
@@ -61,7 +60,7 @@ ai-agent-executor/
 
 3. **Set up environment variables:**
 
-   - Copy `config/.env.example` to `.env`
+   - Copy `.env.example` to `.env` in the root directory
    - Fill in the required values in `.env`:
 
      ```

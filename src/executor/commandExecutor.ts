@@ -22,7 +22,9 @@ export const executeCommand = async (
     logger.info(`Executing command: ${command} in directory ${workingDirectory}`);
 
     const args = ['-c', command];
-    const childProcess = spawn('bash', args, { cwd: workingDirectory });
+    // Use a more flexible approach to find bash
+    const bashPath = '/usr/bin/env';
+    const childProcess = spawn(bashPath, ['bash', ...args], { cwd: workingDirectory });
 
     let stdout = '';
     let stderr = '';
@@ -69,9 +71,7 @@ export const executeCommand = async (
   });
 };
 
-/**
- * Get the status of a background process.
- */
+// Rest of the file remains unchanged
 export const getProcessStatus = (
   pid: string
 ): { stdout: string; stderr: string; running: boolean } | undefined => {
@@ -85,9 +85,6 @@ export const getProcessStatus = (
   }
 };
 
-/**
- * Stop a background process by PID.
- */
 export const stopProcess = (pid: string): boolean => {
   const processInfo = processes.get(pid);
   if (processInfo) {
@@ -101,9 +98,6 @@ export const stopProcess = (pid: string): boolean => {
   }
 };
 
-/**
- * Stop all running processes.
- */
 export const stopAllProcesses = (): void => {
   processes.forEach((processInfo, pid) => {
     processInfo.process.kill();
