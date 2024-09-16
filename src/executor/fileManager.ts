@@ -4,18 +4,6 @@ import path from 'path';
 import { logger } from '../utils/logging';
 
 /**
- * Resolve the full path based on the working directory and provided file path.
- * Ensures the path stays within the working directory.
- */
-const resolvePath = (workingDirectory: string, filePath: string): string => {
-  const fullPath = path.resolve(workingDirectory, filePath);
-  if (!fullPath.startsWith(workingDirectory)) {
-    throw new Error('Attempt to access files outside of working directory');
-  }
-  return fullPath;
-};
-
-/**
  * Recursively list all files in a directory.
  */
 const listFilesRecursive = async (dir: string): Promise<string[]> => {
@@ -46,7 +34,9 @@ export const listFiles = async (
     }
   } catch (error: unknown) {
     logger.error(
-      `Error listing files: ${error instanceof Error ? error.message : 'Unknown error'}`
+      `Error listing files: ${
+        error instanceof Error ? error.message : 'Unknown error'
+      }`
     );
     throw error;
   }
@@ -61,7 +51,9 @@ export const readFile = async (fullPath: string): Promise<string> => {
     return await fs.readFile(fullPath, 'utf-8');
   } catch (error: unknown) {
     logger.error(
-      `Error reading file: ${error instanceof Error ? error.message : 'Unknown error'}`
+      `Error reading file: ${
+        error instanceof Error ? error.message : 'Unknown error'
+      }`
     );
     throw error;
   }
@@ -84,7 +76,9 @@ export const createFile = async (
       throw new Error('File already exists');
     } else {
       logger.error(
-        `Error creating file: ${error instanceof Error ? error.message : 'Unknown error'}`
+        `Error creating file: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`
       );
       throw error;
     }
@@ -103,7 +97,9 @@ export const writeFile = async (
     await fs.writeFile(fullPath, content, 'utf-8');
   } catch (error: unknown) {
     logger.error(
-      `Error writing to file: ${error instanceof Error ? error.message : 'Unknown error'}`
+      `Error writing to file: ${
+        error instanceof Error ? error.message : 'Unknown error'
+      }`
     );
     throw error;
   }
@@ -116,7 +112,7 @@ export const updateFile = async (
   fullPath: string,
   content: string,
   mode: 'overwrite' | 'append'
-  ): Promise<void> => {
+): Promise<void> => {
   logger.info(`Updating file ${fullPath} with mode ${mode}`);
   try {
     if (mode === 'overwrite') {
@@ -128,7 +124,9 @@ export const updateFile = async (
     }
   } catch (error: unknown) {
     logger.error(
-      `Error updating file: ${error instanceof Error ? error.message : 'Unknown error'}`
+      `Error updating file: ${
+        error instanceof Error ? error.message : 'Unknown error'
+      }`
     );
     throw error;
   }
@@ -143,7 +141,9 @@ export const deleteFile = async (fullPath: string): Promise<void> => {
     await fs.unlink(fullPath);
   } catch (error: unknown) {
     logger.error(
-      `Error deleting file: ${error instanceof Error ? error.message : 'Unknown error'}`
+      `Error deleting file: ${
+        error instanceof Error ? error.message : 'Unknown error'
+      }`
     );
     throw error;
   }
@@ -158,7 +158,9 @@ export const createDirectory = async (fullPath: string): Promise<void> => {
     await fs.mkdir(fullPath, { recursive: true });
   } catch (error: unknown) {
     logger.error(
-      `Error creating directory: ${error instanceof Error ? error.message : 'Unknown error'}`
+      `Error creating directory: ${
+        error instanceof Error ? error.message : 'Unknown error'
+      }`
     );
     throw error;
   }
@@ -173,7 +175,9 @@ export const deleteDirectory = async (fullPath: string): Promise<void> => {
     await fs.rm(fullPath, { recursive: true, force: true });
   } catch (error: unknown) {
     logger.error(
-      `Error deleting directory: ${error instanceof Error ? error.message : 'Unknown error'}`
+      `Error deleting directory: ${
+        error instanceof Error ? error.message : 'Unknown error'
+      }`
     );
     throw error;
   }

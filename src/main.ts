@@ -19,13 +19,15 @@ const startServer = async (): Promise<void> => {
 
   const app = createApiServer(WORKING_DIRECTORY);
 
-  app.listen(PORT, () => {
-    logger.info(`AI Agent Executor is ready and listening on port ${PORT}`);
+  app.listen(Number(PORT), () => {
+    logger.info(`AI Agent Executor is listening on port ${PORT}`);
   });
 };
 
 startServer().catch((error: unknown) => {
-  logger.error('Failed to start server', { error: error instanceof Error ? error.message : 'Unknown error' });
+  logger.error('Failed to start server', {
+    error: error instanceof Error ? error.message : 'Unknown error',
+  });
   process.exit(1);
 });
 

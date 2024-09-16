@@ -1,4 +1,4 @@
-import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
+import { spawn, ChildProcessWithoutNullStreams } from 'child_process';
 import { logger } from '../utils/logging';
 
 interface ProcessInfo {
@@ -12,14 +12,13 @@ const processes: Map<string, ProcessInfo> = new Map();
 /**
  * Execute a shell command.
  * If runInBackground is true, the command is executed in the background.
- * Returns a process ID for background processes.
  */
 export const executeCommand = async (
   command: string,
   workingDirectory: string,
   runInBackground: boolean = false
 ): Promise<{ stdout?: string; stderr?: string; exitCode?: number; pid?: string }> => {
-  try {
+  return new Promise((resolve, reject) => {
     logger.info(`Executing command: ${command} in directory ${workingDirectory}`);
 
     const args = ['-c', command];
@@ -29,11 +28,15 @@ export const executeCommand = async (
     let stderr = '';
 
     childProcess.stdout.on('data', (data) => {
-      stdout += data.toString();
+      const output = data.toString();
+      stdout += output;
+      logger.info(`stdout: ${output}`);
     });
 
     childProcess.stderr.on('data', (data) => {
-      stderr += data.toString();
+      const output = data.toString();
+      stderr += output;
+      logger.error(`stderr: ${output}`);
     });
 
     if (runInBackground) {
@@ -41,8 +44,8 @@ export const executeCommand = async (
 
       const processInfo: ProcessInfo = {
         process: childProcess,
-        stdout,
-        stderr,
+        stdout: '',
+        stderr: '',
       };
 
       childProcess.on('close', (code) => {
@@ -52,19 +55,18 @@ export const executeCommand = async (
 
       processes.set(pid, processInfo);
 
-      return { pid };
+      resolve({ pid });
     } else {
-      return await new Promise((resolve) => {
-        childProcess.on('close', (code) => {
-          const exitCode = code === null ? -1 : code;
-          resolve({ stdout, stderr, exitCode });
-        });
+      childProcess.on('close', (code) => {
+        const exitCode = code === null ? -1 : code;
+        resolve({ stdout, stderr, exitCode });
+      });
+
+      childProcess.on('error', (err) => {
+        reject(err);
       });
     }
-  } catch (error: any) {
-    logger.error(`Command execution failed: ${error.message || 'Unknown error'}`);
-    return { stdout: '', stderr: '', exitCode: -1 };
-  }
+  });
 };
 
 /**
@@ -78,8 +80,9 @@ export const getProcessStatus = (
     const { process, stdout, stderr } = processInfo;
     const running = process.exitCode === null && !process.killed;
     return { stdout, stderr, running };
+  } else {
+    return undefined;
   }
-  return undefined;
 };
 
 /**
@@ -92,9 +95,10 @@ export const stopProcess = (pid: string): boolean => {
     processes.delete(pid);
     logger.info(`Process ${pid} has been stopped`);
     return true;
+  } else {
+    logger.warn(`Process ${pid} not found`);
+    return false;
   }
-  logger.warn(`Process ${pid} not found`);
-  return false;
 };
 
 /**
@@ -104,13 +108,6 @@ export const stopAllProcesses = (): void => {
   processes.forEach((processInfo, pid) => {
     processInfo.process.kill();
     logger.info(`Process ${pid} has been stopped`);
+    processes.delete(pid);
   });
-  processes.clear();
-};
-
-// For testing purposes
-export const _getProcesses = () => processes;
-export const _setProcesses = (newProcesses: Map<string, ProcessInfo>) => {
-  processes.clear();
-  newProcesses.forEach((value, key) => processes.set(key, value));
 };

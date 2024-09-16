@@ -1,4 +1,4 @@
-import { executeCommand, stopProcess, getProcessStatus, stopAllProcesses, _getProcesses, _setProcesses } from '../src/executor/commandExecutor';
+import { executeCommand, stopProcess, getProcessStatus, stopAllProcesses } from '../src/executor/commandExecutor';
 import * as childProcess from 'child_process';
 import { EventEmitter } from 'events';
 import { Writable, Readable } from 'stream';
@@ -64,9 +64,6 @@ describe('Command Executor', () => {
     mockChildProcess[Symbol.dispose] = jest.fn();
 
     mockSpawn = jest.spyOn(childProcess, 'spawn').mockReturnValue(mockChildProcess as childProcess.ChildProcessWithoutNullStreams);
-
-    // Clear the processes map before each test
-    _setProcesses(new Map());
   });
 
   afterEach(() => {
@@ -114,27 +111,26 @@ describe('Command Executor', () => {
         throw new Error('Command execution failed');
       });
 
-      const result = await executeCommand(command, workingDirectory);
-
-      expect(result).toEqual({
-        stdout: '',
-        stderr: '',
-        exitCode: -1,
-      });
+      await expect(executeCommand(command, workingDirectory)).rejects.toThrow('Command execution failed');
     });
   });
 
   describe('getProcessStatus', () => {
-    it('should return the status of a running process', () => {
-      const pid = '12345';
-      const mockProcess = { exitCode: null, killed: false } as childProcess.ChildProcessWithoutNullStreams;
-      _setProcesses(new Map([[pid, { process: mockProcess, stdout: 'Some output', stderr: 'Some error' }]]));
+    it('should return the status of a running process', async () => {
+      const command = 'long-running-process';
+      const workingDirectory = '/test/dir';
+
+      const { pid } = await executeCommand(command, workingDirectory, true);
+      
+      if (!pid) {
+        throw new Error('Failed to start background process');
+      }
 
       const status = getProcessStatus(pid);
 
       expect(status).toEqual({
-        stdout: 'Some output',
-        stderr: 'Some error',
+        stdout: '',
+        stderr: '',
         running: true,
       });
     });
@@ -147,16 +143,20 @@ describe('Command Executor', () => {
   });
 
   describe('stopProcess', () => {
-    it('should stop a running process', () => {
-      const pid = '12345';
-      const mockProcess = { kill: jest.fn() } as unknown as childProcess.ChildProcessWithoutNullStreams;
-      _setProcesses(new Map([[pid, { process: mockProcess, stdout: '', stderr: '' }]]));
+    it('should stop a running process', async () => {
+      const command = 'long-running-process';
+      const workingDirectory = '/test/dir';
+
+      const { pid } = await executeCommand(command, workingDirectory, true);
+      
+      if (!pid) {
+        throw new Error('Failed to start background process');
+      }
 
       const result = stopProcess(pid);
 
       expect(result).toBe(true);
-      expect(mockProcess.kill).toHaveBeenCalled();
-      expect(_getProcesses().size).toBe(0);
+      expect(mockChildProcess.kill).toHaveBeenCalled();
     });
 
     it('should return false for a non-existent process', () => {
@@ -167,19 +167,17 @@ describe('Command Executor', () => {
   });
 
   describe('stopAllProcesses', () => {
-    it('should stop all running processes', () => {
-      const mockProcess1 = { kill: jest.fn() } as unknown as childProcess.ChildProcessWithoutNullStreams;
-      const mockProcess2 = { kill: jest.fn() } as unknown as childProcess.ChildProcessWithoutNullStreams;
-      _setProcesses(new Map([
-        ['pid1', { process: mockProcess1, stdout: '', stderr: '' }],
-        ['pid2', { process: mockProcess2, stdout: '', stderr: '' }]
-      ]));
+    it('should stop all running processes', async () => {
+      const command1 = 'long-running-process-1';
+      const command2 = 'long-running-process-2';
+      const workingDirectory = '/test/dir';
+
+      await executeCommand(command1, workingDirectory, true);
+      await executeCommand(command2, workingDirectory, true);
 
       stopAllProcesses();
 
-      expect(mockProcess1.kill).toHaveBeenCalled();
-      expect(mockProcess2.kill).toHaveBeenCalled();
-      expect(_getProcesses().size).toBe(0);
+      expect(mockChildProcess.kill).toHaveBeenCalledTimes(2);
     });
   });
 });

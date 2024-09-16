@@ -19,31 +19,12 @@ import {
 } from '../executor/fileManager';
 import { logger } from '../utils/logging';
 
-type FileOperation =
-  | 'list'
-  | 'read'
-  | 'write'
-  | 'createFile'
-  | 'update'
-  | 'deleteFile'
-  | 'deleteDirectory'
-  | 'createDir'
-  | 'checkExistence';
-
-interface FileOperationRequest {
-  operation: FileOperation;
-  path: string;
-  content?: string;
-  recursive?: boolean;
-  mode?: 'overwrite' | 'append';
-}
-
 export const createApiServer = (workingDirectory: string): express.Express => {
   const app = express();
   app.use(express.json());
 
   // Initialize the current working directory
-  let currentWorkingDirectory = workingDirectory;
+  let currentWorkingDirectory = path.resolve(workingDirectory);
 
   /**
    * Endpoint to execute shell commands.
@@ -53,11 +34,10 @@ export const createApiServer = (workingDirectory: string): express.Express => {
       const { command, runInBackground } = req.body;
 
       // Handle 'cd' commands to change directories
-      if (command.startsWith('cd')) {
-        const targetDir = command.slice(2).trim();
+      if (command.startsWith('cd ')) {
+        const targetDir = command.slice(3).trim();
         const newPath = path.resolve(currentWorkingDirectory, targetDir);
 
-        // For testing purposes, we relax the directory restrictions
         currentWorkingDirectory = newPath;
         logger.info(`Changed directory to ${currentWorkingDirectory}`);
         res.json({ result: `Changed directory to ${currentWorkingDirectory}` });
@@ -68,7 +48,7 @@ export const createApiServer = (workingDirectory: string): express.Express => {
           runInBackground
         );
 
-        if (runInBackground) {
+        if (runInBackground && result.pid) {
           res.json({ message: 'Command is running in background', pid: result.pid });
         } else {
           res.json({ result });
@@ -151,17 +131,13 @@ export const createApiServer = (workingDirectory: string): express.Express => {
   return app;
 };
 
-/**
- * Moved handleFileOperation inside the createApiServer to access currentWorkingDirectory
- */
 const handleFileOperation = async (
   workingDirectory: string,
-  req: FileOperationRequest
+  req: any
 ): Promise<any> => {
   const { operation, path: relativePath, content, recursive, mode } = req;
   const fullPath = path.resolve(workingDirectory, relativePath);
 
-  // For testing purposes, we relax the directory restrictions
   logger.info(`Performing ${operation} on ${fullPath}`);
 
   switch (operation) {
@@ -198,7 +174,7 @@ const handleFileOperation = async (
       return 'Directory deleted successfully';
     case 'checkExistence':
       const exists = await checkExistence(fullPath);
-      return exists;
+      return { exists };
     default:
       throw new Error('Invalid file operation');
   }
