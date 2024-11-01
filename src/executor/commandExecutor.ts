@@ -1,42 +1,32 @@
-import { spawn } from 'child_process';
-import { logger } from '../utils/logging';
+import { exec } from 'child_process';
+import { promisify } from 'util';
 
 /**
- * Execute a shell command.
+ * Execute a shell command in a given working directory and return the output.
  */
 export const executeCommand = async (
   command: string,
   workingDirectory: string
 ): Promise<{ stdout: string; stderr: string; exitCode: number }> => {
-  return new Promise((resolve, reject) => {
-    logger.info(`Executing command: ${command} in directory ${workingDirectory}`);
+  // Promisify the exec function for easier async/await usage
+  const execAsync = promisify(exec);
 
-    const args = ['-c', command];
-    const bashPath = '/usr/bin/env';
-    const childProcess = spawn(bashPath, ['bash', ...args], { cwd: workingDirectory });
-
-    let stdout = '';
-    let stderr = '';
-
-    childProcess.stdout.on('data', (data) => {
-      const output = data.toString();
-      stdout += output;
-      logger.info(`stdout: ${output}`);
+  try {
+    const { stdout, stderr } = await execAsync(command, {
+      cwd: workingDirectory,
+      env: { ...process.env },
+      shell: '/bin/bash', // Use bash shell for Linux
+      maxBuffer: 1024 * 1024 * 10, // Increase buffer size if needed
     });
-
-    childProcess.stderr.on('data', (data) => {
-      const output = data.toString();
-      stderr += output;
-      logger.error(`stderr: ${output}`);
-    });
-
-    childProcess.on('close', (code) => {
-      const exitCode = code === null ? -1 : code;
-      resolve({ stdout, stderr, exitCode });
-    });
-
-    childProcess.on('error', (err) => {
-      reject(err);
-    });
-  });
+    // Command executed successfully
+    return { stdout, stderr, exitCode: 0 };
+  } catch (error) {
+    const err = error as any; // Type assertion for error object
+    // Command failed; capture stdout, stderr, and exit code
+    return {
+      stdout: err.stdout || '',
+      stderr: err.stderr || '',
+      exitCode: err.code || -1,
+    };
+  }
 };

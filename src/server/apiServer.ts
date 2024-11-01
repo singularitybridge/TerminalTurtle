@@ -38,13 +38,22 @@ export const createApiServer = (workingDirectory: string): express.Express => {
         res.json({ result: `Changed directory to ${currentWorkingDirectory}` });
       } else {
         const result = await executeCommand(command, currentWorkingDirectory);
-        res.json({ result });
+        
+        res.status(200).json({
+          success: true,
+          exitCode: result.exitCode,
+          output: result.stdout + result.stderr, // Combine outputs if needed
+        });
+    
       }
     } catch (error) {
-      logger.error('Error executing command', { error });
+      const err = error as any;
       res.status(500).json({
-        error: error instanceof Error ? error.message : 'Unknown error occurred',
+        success: false,
+        exitCode: err.exitCode || -1,
+        output: err.stdout + err.stderr || 'An error occurred.',
       });
+  
     }
   });
 
