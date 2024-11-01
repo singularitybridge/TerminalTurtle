@@ -42,7 +42,7 @@ export const createApiServer = (workingDirectory: string): express.Express => {
         res.status(200).json({
           success: true,
           exitCode: result.exitCode,
-          output: result.stdout + result.stderr, // Outputs are already cleaned
+          result: result.stdout + result.stderr, // Outputs are already cleaned
         });
       }
     } catch (error) {
@@ -50,7 +50,7 @@ export const createApiServer = (workingDirectory: string): express.Express => {
       res.status(500).json({
         success: false,
         exitCode: err.exitCode || -1,
-        output: err.stdout + err.stderr || 'An error occurred.',
+        result: err.stdout + err.stderr || 'An error occurred.',
       });
     }
   });
