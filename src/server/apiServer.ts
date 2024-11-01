@@ -1,11 +1,6 @@
 import express, { Request, Response } from 'express';
 import path from 'path';
-import {
-  executeCommand,
-  stopProcess,
-  getProcessStatus,
-  stopAllProcesses,
-} from '../executor/commandExecutor';
+import { executeCommand } from '../executor/commandExecutor';
 import {
   listFiles,
   readFile,
@@ -31,7 +26,7 @@ export const createApiServer = (workingDirectory: string): express.Express => {
    */
   app.post('/execute', async (req: Request, res: Response) => {
     try {
-      const { command, runInBackground } = req.body;
+      const { command } = req.body;
 
       // Handle 'cd' commands to change directories
       if (command.startsWith('cd ')) {
@@ -42,49 +37,14 @@ export const createApiServer = (workingDirectory: string): express.Express => {
         logger.info(`Changed directory to ${currentWorkingDirectory}`);
         res.json({ result: `Changed directory to ${currentWorkingDirectory}` });
       } else {
-        const result = await executeCommand(
-          command,
-          currentWorkingDirectory,
-          runInBackground
-        );
-
-        if (runInBackground && result.pid) {
-          res.json({ message: 'Command is running in background', pid: result.pid });
-        } else {
-          res.json({ result });
-        }
+        const result = await executeCommand(command, currentWorkingDirectory);
+        res.json({ result });
       }
     } catch (error) {
       logger.error('Error executing command', { error });
       res.status(500).json({
         error: error instanceof Error ? error.message : 'Unknown error occurred',
       });
-    }
-  });
-
-  /**
-   * Endpoint to get process status and output.
-   */
-  app.get('/process/:pid', (req: Request, res: Response) => {
-    const pid = req.params.pid;
-    const status = getProcessStatus(pid);
-    if (status) {
-      res.json({ pid, ...status });
-    } else {
-      res.status(404).json({ error: 'Process not found' });
-    }
-  });
-
-  /**
-   * Endpoint to stop a background process.
-   */
-  app.post('/process/:pid/stop', (req: Request, res: Response) => {
-    const pid = req.params.pid;
-    const stopped = stopProcess(pid);
-    if (stopped) {
-      res.json({ message: `Process ${pid} has been stopped` });
-    } else {
-      res.status(404).json({ error: 'Process not found' });
     }
   });
 
@@ -116,16 +76,6 @@ export const createApiServer = (workingDirectory: string): express.Express => {
         });
       }
     }
-  });
-
-  /**
-   * Endpoint to stop all running processes and shut down server.
-   */
-  app.post('/stop-execution', (_: Request, res: Response) => {
-    logger.info('Received stop execution command');
-    stopAllProcesses();
-    res.json({ message: 'All processes stopped' });
-    process.exit(0);
   });
 
   return app;

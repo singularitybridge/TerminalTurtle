@@ -8,7 +8,7 @@
   "scripts": {
     "start": "node dist/main.js",
     "build": "tsc",
-    "dev": "ts-node src/main.ts",
+    "dev": "nodemon --watch 'src/**/*.ts' --exec 'ts-node' src/main.ts",
     "test": "jest",
     "lint": "eslint . --ext .ts"
   },
@@ -34,7 +34,14 @@
     "@typescript-eslint/parser": "^6.21.0",
     "eslint": "^8.57.0",
     "jest": "^29.7.0",
+    "nodemon": "^3.0.1",
     "supertest": "^7.0.0",
     "ts-jest": "^29.2.5"
+  },
+  "nodemonConfig": {
+    "ignore": ["**/*.test.ts", "**/*.spec.ts", ".git", "node_modules"],
+    "watch": ["src"],
+    "exec": "ts-node",
+    "ext": "ts"
   }
 }

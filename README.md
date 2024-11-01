@@ -6,10 +6,9 @@ The AI Agent Executor is an environment that allows an AI agent to execute comma
 
 ## Features
 
-- **Command Execution**: Execute shell commands in both foreground and background.
+- **Command Execution**: Execute shell commands synchronously with output capture.
 - **File Management**: List, create, read, update, and delete files and directories.
 - **Code Execution**: Allow AI agent to write code to files and execute them.
-- **Process Management**: Manage background processes (start, check status, stop).
 - **REST API**: Expose functionality through a RESTful API.
 - **Configuration**: Use environment variables for setup and sensitive information.
 - **Recursive File Listing**: Support for listing files and directories recursively.
@@ -85,10 +84,6 @@ ai-agent-executor/
 
 ### Executing Commands
 
-You can execute commands either in the foreground (blocking) or in the background (non-blocking). By default, commands run in the foreground.
-
-#### Execute a Command in the Foreground
-
 Send a POST request to `/execute` with the command you want to run.
 
 **Example:**
@@ -111,29 +106,6 @@ curl -X POST http://localhost:3001/execute \
 }
 ```
 
-#### Execute a Command in the Background
-
-Include `"runInBackground": true` in your request to run the command in the background.
-
-**Example:**
-
-```bash
-curl -X POST http://localhost:3001/execute \
-  -H "Content-Type: application/json" \
-  -d '{"command": "npm start", "runInBackground": true}'
-```
-
-**Sample Response:**
-
-```json
-{
-  "message": "Command is running in background",
-  "pid": "1629489395067-5g7x9t3"
-}
-```
-
-This will return a process ID (`pid`) that you can use to check the status or stop the process.
-
 ### Changing Directories
 
 The AI agent can change the current working directory using the `cd` command.
@@ -151,45 +123,6 @@ curl -X POST http://localhost:3001/execute \
 ```json
 {
   "result": "Changed directory to /path/to/dir"
-}
-```
-
-### Checking Process Status
-
-To check the status and output of a running background process, send a GET request to `/process/:pid`.
-
-**Example:**
-
-```bash
-curl -X GET http://localhost:3001/process/1629489395067-5g7x9t3
-```
-
-**Sample Response:**
-
-```json
-{
-  "pid": "1629489395067-5g7x9t3",
-  "stdout": "Server is running...\n",
-  "stderr": "",
-  "running": true
-}
-```
-
-### Stopping a Background Process
-
-To stop a running background process, send a POST request to `/process/:pid/stop`.
-
-**Example:**
-
-```bash
-curl -X POST http://localhost:3001/process/1629489395067-5g7x9t3/stop
-```
-
-**Sample Response:**
-
-```json
-{
-  "message": "Process 1629489395067-5g7x9t3 has been stopped"
 }
 ```
 
@@ -264,24 +197,6 @@ The AI Agent Executor uses a REST API for file operations. Send a POST request t
      -d '{"operation": "checkExistence", "path": "./newfile.txt"}'
    ```
 
-### Stopping All Processes and Shutting Down
-
-To stop all running processes and shut down the server, send a POST request to `/stop-execution`.
-
-**Example:**
-
-```bash
-curl -X POST http://localhost:3001/stop-execution
-```
-
-**Sample Response:**
-
-```json
-{
-  "message": "All processes stopped"
-}
-```
-
 ## Error Handling
 
 The API includes robust error handling:
@@ -328,9 +243,8 @@ npm test
 Test files are located in the `tests/` directory and follow the naming convention `*.test.ts`.
 
 The test suite covers all major functionalities including:
-- Command execution (foreground and background)
+- Command execution with output capture
 - File operations (list, read, write, create, update, delete, check existence)
-- Process management (start, status check, stop)
 - API endpoints
 
 Each component (commandExecutor, fileManager, apiServer) has its own dedicated test file with comprehensive test cases.
