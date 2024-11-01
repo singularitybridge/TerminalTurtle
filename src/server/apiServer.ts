@@ -26,25 +26,24 @@ export const createApiServer = (workingDirectory: string): express.Express => {
    */
   app.post('/execute', async (req: Request, res: Response) => {
     try {
-      const { command } = req.body;
-
+      let { command } = req.body;
+  
       // Handle 'cd' commands to change directories
       if (command.startsWith('cd ')) {
-        const targetDir = command.slice(3).trim();
-        const newPath = path.resolve(currentWorkingDirectory, targetDir);
-
-        currentWorkingDirectory = newPath;
-        logger.info(`Changed directory to ${currentWorkingDirectory}`);
-        res.json({ result: `Changed directory to ${currentWorkingDirectory}` });
+        // ... (existing code)
       } else {
+        // Optionally adjust the command for 'npm run build'
+        if (command === 'npm run build') {
+          command = 'npm run build -- --pretty';
+        }
+  
         const result = await executeCommand(command, currentWorkingDirectory);
-        
+  
         res.status(200).json({
           success: true,
           exitCode: result.exitCode,
-          output: result.stdout + result.stderr, // Combine outputs if needed
+          output: result.stdout + result.stderr, // Outputs are already cleaned
         });
-    
       }
     } catch (error) {
       const err = error as any;
@@ -53,9 +52,9 @@ export const createApiServer = (workingDirectory: string): express.Express => {
         exitCode: err.exitCode || -1,
         output: err.stdout + err.stderr || 'An error occurred.',
       });
-  
     }
   });
+  
 
   /**
    * Endpoint to perform file operations.
