@@ -38,11 +38,12 @@ export const createApiServer = (workingDirectory: string): express.Express => {
         }
   
         const result = await executeCommand(command, currentWorkingDirectory);
+        const output = result.stdout + result.stderr;
   
         res.status(200).json({
           success: true,
           exitCode: result.exitCode,
-          result: result.stdout + result.stderr, // Outputs are already cleaned
+          result: output || `command executed successfully`, // Ensure non-empty result
         });
       }
     } catch (error) {
