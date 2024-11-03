@@ -12,6 +12,8 @@ logs
 *.log
 npm-debug.log*
 
+.agent-credentials
+
 # Runtime data
 pids
 *.pid

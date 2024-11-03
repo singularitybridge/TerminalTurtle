@@ -5,6 +5,7 @@ import { createApiServer } from './server/apiServer';
 import { logger, setupUnhandledExceptionLogging } from './utils/logging';
 import { connectNgrok, disconnectAll } from './utils/ngrok';
 import { AddressInfo } from 'net';
+import { setupAgent, getCredentials } from './utils/credentials';
 
 // Load environment variables
 const envPath = path.resolve(__dirname, '../.env');
@@ -51,6 +52,21 @@ const startServer = async (): Promise<void> => {
   logger.info(`Starting AI Agent Executor in ${isLocalMode ? 'local' : 'development'} mode`);
   logger.info(`Configured working directory: ${WORKING_DIRECTORY}`);
 
+  // Initialize agent credentials if not already set up
+  try {
+    const agentName = process.env.AGENT_NAME;
+    const credentials = setupAgent(agentName);
+    logger.info('Agent configured successfully', {
+      agentId: credentials.id,
+      name: credentials.name,
+    });
+  } catch (error) {
+    logger.error('Error setting up agent credentials', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+    process.exit(1);
+  }
+
   try {
     if (!fs.existsSync(WORKING_DIRECTORY)) {
       logger.info(`Creating working directory: ${WORKING_DIRECTORY}`);
@@ -90,6 +106,14 @@ const startServer = async (): Promise<void> => {
           });
           
           logger.info(`Public URL available at: ${ngrokConnection.url}`);
+
+          // Get agent credentials for notification
+          const credentials = getCredentials();
+          logger.info('Agent ready', {
+            agentId: credentials.id,
+            name: credentials.name,
+            url: ngrokConnection.url,
+          });
 
           // Store the disconnect function for cleanup
           process.on('SIGINT', async () => {

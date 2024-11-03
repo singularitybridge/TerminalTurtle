@@ -1,4 +1,4 @@
-import express, { Request, Response } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import path from 'path';
 import { executeCommand } from '../executor/commandExecutor';
 import {
@@ -13,6 +13,43 @@ import {
   checkExistence,
 } from '../executor/fileManager';
 import { logger } from '../utils/logging';
+import { getCredentials } from '../utils/credentials';
+
+// Custom interface for authenticated requests
+interface AuthenticatedRequest extends Request {
+  agentId?: string;
+}
+
+// Authentication middleware
+const authenticateRequest = (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Missing or invalid authorization header' });
+  }
+
+  try {
+    const credentials = getCredentials();
+    const providedApiKey = authHeader.split(' ')[1];
+
+    if (providedApiKey !== credentials.apiKey) {
+      return res.status(401).json({ error: 'Invalid API key' });
+    }
+
+    // Add agent ID to request for logging purposes
+    req.agentId = credentials.id;
+    next();
+  } catch (error) {
+    logger.error('Authentication error', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+};
 
 export const createApiServer = (workingDirectory: string): express.Express => {
   const app = express();
@@ -21,10 +58,28 @@ export const createApiServer = (workingDirectory: string): express.Express => {
   // Initialize the current working directory
   let currentWorkingDirectory = path.resolve(workingDirectory);
 
+  // Get agent information
+  app.get('/agent-info', (req: Request, res: Response) => {
+    try {
+      const credentials = getCredentials();
+      res.json({
+        id: credentials.id,
+        name: credentials.name,
+      });
+    } catch (error) {
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  });
+
+  // Apply authentication middleware to protected routes
+  app.use(['/execute', '/file-operation'], authenticateRequest);
+
   /**
    * Endpoint to execute shell commands.
    */
-  app.post('/execute', async (req: Request, res: Response) => {
+  app.post('/execute', async (req: AuthenticatedRequest, res: Response) => {
     try {
       let { command } = req.body;
   
@@ -60,7 +115,7 @@ export const createApiServer = (workingDirectory: string): express.Express => {
   /**
    * Endpoint to perform file operations.
    */
-  app.post('/file-operation', async (req: Request, res: Response) => {
+  app.post('/file-operation', async (req: AuthenticatedRequest, res: Response) => {
     try {
       const result = await handleFileOperation(
         currentWorkingDirectory,
@@ -71,6 +126,7 @@ export const createApiServer = (workingDirectory: string): express.Express => {
       logger.error('Error performing file operation', {
         error,
         request: req.body,
+        agentId: req.agentId,
       });
       if (
         error instanceof Error &&
