@@ -15,17 +15,8 @@ if (result.error) {
   process.exit(1);
 }
 
-// Debug environment loading
-logger.debug('Environment loaded from:', { 
-  envPath,
-  vars: {
-    PORT: process.env.PORT ? 'set' : 'not set',
-    WORKING_DIRECTORY: process.env.WORKING_DIRECTORY ? 'set' : 'not set',
-    NGROK_AUTH_TOKEN: process.env.NGROK_AUTH_TOKEN ? 'set' : 'not set'
-  }
-});
-
 const { PORT, WORKING_DIRECTORY } = process.env;
+const isLocalMode = process.env.NODE_ENV === 'local';
 
 if (!PORT || !WORKING_DIRECTORY) {
   logger.error('Missing required environment variables');
@@ -57,7 +48,7 @@ const findAvailablePort = async (startPort: number): Promise<number> => {
 };
 
 const startServer = async (): Promise<void> => {
-  logger.info('Starting AI Agent Executor');
+  logger.info(`Starting AI Agent Executor in ${isLocalMode ? 'local' : 'development'} mode`);
   logger.info(`Configured working directory: ${WORKING_DIRECTORY}`);
 
   try {
@@ -91,44 +82,43 @@ const startServer = async (): Promise<void> => {
       logger.info(`AI Agent Executor is listening on port ${availablePort}`);
       logger.info(`Working directory: ${WORKING_DIRECTORY}`);
 
-      try {
-        // Start ngrok tunnel after server is running
-        const ngrokConnection = await connectNgrok({
-          port: availablePort,
-        });
-        
-        logger.info(`Public URL available at: ${ngrokConnection.url}`);
-
-        // Store the disconnect function for cleanup
-        process.on('SIGINT', async () => {
-          logger.info('Shutting down ngrok tunnel...');
-          await ngrokConnection.disconnect().catch(err => {
-            // Error already logged in the ngrok utility
+      // Only initialize ngrok in development mode
+      if (!isLocalMode) {
+        try {
+          const ngrokConnection = await connectNgrok({
+            port: availablePort,
           });
-          logger.info('Shutting down AI Agent Executor');
-          server.close();
-          process.exit(0);
-        });
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        logger.error('Ngrok tunnel setup failed', {
-          error: errorMessage,
-          note: 'Server will continue running without public URL access'
-        });
-        
-        if (errorMessage.includes('NGROK_AUTH_TOKEN is not set')) {
-          logger.info('To enable public URL access via ngrok, follow the setup instructions above');
+          
+          logger.info(`Public URL available at: ${ngrokConnection.url}`);
+
+          // Store the disconnect function for cleanup
+          process.on('SIGINT', async () => {
+            logger.info('Shutting down ngrok tunnel...');
+            await ngrokConnection.disconnect().catch(err => {
+              // Error already logged in the ngrok utility
+            });
+            logger.info('Shutting down AI Agent Executor');
+            server.close();
+            process.exit(0);
+          });
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          logger.error('Ngrok tunnel setup failed', {
+            error: errorMessage,
+            note: 'Server will continue running without public URL access'
+          });
         }
-        // Continue running the server even if ngrok fails
       }
     });
 
     // Handle server shutdown
     server.on('close', async () => {
       logger.info('Server closing, cleaning up...');
-      await disconnectAll().catch(err => {
-        // Error already logged in the ngrok utility
-      });
+      if (!isLocalMode) {
+        await disconnectAll().catch(err => {
+          // Error already logged in the ngrok utility
+        });
+      }
     });
 
     // Handle server errors

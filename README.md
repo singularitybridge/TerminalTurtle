@@ -10,6 +10,7 @@ The AI Agent Executor is an environment that allows an AI agent to execute comma
 - **File Management**: List, create, read, update, and delete files and directories.
 - **Code Execution**: Allow AI agent to write code to files and execute them.
 - **REST API**: Expose functionality through a RESTful API.
+- **Public URL Access**: Optional ngrok integration for exposing the server to the internet.
 - **Configuration**: Use environment variables for setup and sensitive information.
 - **Recursive File Listing**: Support for listing files and directories recursively.
 
@@ -26,7 +27,8 @@ ai-agent-executor/
 │   │   └── apiServer.ts
 │   ├── utils/
 │   │   ├── logging.ts
-│   │   └── security.ts
+│   │   ├── security.ts
+│   │   └── ngrok.ts
 │   └── main.ts
 ├── tests/
 │   ├── apiServer.test.ts
@@ -66,6 +68,7 @@ ai-agent-executor/
      PORT=3001
      WORKING_DIRECTORY=/path/to/your/working/directory
      AUTH_TOKEN=your_auth_token
+     NGROK_AUTH_TOKEN=your_ngrok_auth_token  # Optional, for public URL access
      ```
 
 4. **Build the project:**
@@ -79,6 +82,46 @@ ai-agent-executor/
    ```bash
    npm start
    ```
+
+## Development
+
+The project is written in TypeScript and uses Node.js. It's configured with `tsconfig.json` for TypeScript compilation.
+
+For development purposes, you can use the following npm scripts:
+
+- `npm run dev`: Start the server with ngrok integration for public URL access.
+- `npm run dev:local`: Start the server without ngrok for local-only development.
+- `npm run build`: Compile TypeScript to JavaScript.
+- `npm start`: Run the compiled JavaScript.
+- `npm run lint`: Run ESLint to check for code style issues.
+- `npm test`: Run the Jest test suite.
+
+### Development Modes
+
+The server can run in two modes:
+
+1. **Development Mode with Public URL** (`npm run dev`):
+   - Starts the development server with hot-reloading
+   - Automatically creates a public URL using ngrok
+   - Requires ngrok authentication (see Public URL Access below)
+
+2. **Local Development Mode** (`npm run dev:local`):
+   - Starts the development server with hot-reloading
+   - Runs without ngrok integration
+   - Accessible only from localhost
+
+### Public URL Access
+
+The server can optionally expose a public URL using ngrok. To enable this feature:
+
+1. Sign up for a free ngrok account at https://dashboard.ngrok.com/signup
+2. Get your authtoken from https://dashboard.ngrok.com/get-started/your-authtoken
+3. Either:
+   - Add `NGROK_AUTH_TOKEN=your_token` to your `.env` file, or
+   - Run `ngrok config add-authtoken your_token` to set it system-wide
+4. Start the server with `npm run dev`
+
+When running with ngrok enabled, the server will log the public URL that can be used to access your local server from anywhere.
 
 ## Usage
 
@@ -103,26 +146,6 @@ curl -X POST http://localhost:3001/execute \
     "stderr": "",
     "exitCode": 0
   }
-}
-```
-
-### Changing Directories
-
-The AI agent can change the current working directory using the `cd` command.
-
-**Example:**
-
-```bash
-curl -X POST http://localhost:3001/execute \
-  -H "Content-Type: application/json" \
-  -d '{"command": "cd /path/to/dir"}'
-```
-
-**Sample Response:**
-
-```json
-{
-  "result": "Changed directory to /path/to/dir"
 }
 ```
 
@@ -168,35 +191,6 @@ The AI Agent Executor uses a REST API for file operations. Send a POST request t
      -d '{"operation": "write", "path": "./newfile.txt", "content": "Hello, World!"}'
    ```
 
-4. **Update a File**
-
-   ```bash
-   curl -X POST http://localhost:3001/file-operation \
-     -H "Content-Type: application/json" \
-     -d '{
-           "operation": "update",
-           "path": "./newfile.txt",
-           "content": "\nAppended text.",
-           "mode": "append"
-         }'
-   ```
-
-5. **Create a Directory**
-
-   ```bash
-   curl -X POST http://localhost:3001/file-operation \
-     -H "Content-Type: application/json" \
-     -d '{"operation": "createDir", "path": "./newdir"}'
-   ```
-
-6. **Check if a File Exists**
-
-   ```bash
-   curl -X POST http://localhost:3001/file-operation \
-     -H "Content-Type: application/json" \
-     -d '{"operation": "checkExistence", "path": "./newfile.txt"}'
-   ```
-
 ## Error Handling
 
 The API includes robust error handling:
@@ -214,24 +208,6 @@ The API includes robust error handling:
 - **Authentication and Rate Limiting**: Authentication and rate limiting mechanisms are bypassed.
 - **Caution**: Be extremely cautious when running untrusted commands or code.
 
-## Development
-
-The project is written in TypeScript and uses Node.js. It's configured with `tsconfig.json` for TypeScript compilation.
-
-For development purposes, you can use the following npm scripts:
-
-- `npm run dev`: Start the server using `ts-node` for development with hot-reloading.
-- `npm run build`: Compile TypeScript to JavaScript.
-- `npm start`: Run the compiled JavaScript.
-- `npm run lint`: Run ESLint to check for code style issues.
-- `npm test`: Run the Jest test suite.
-
-### Example:
-
-```bash
-npm run dev
-```
-
 ## Testing
 
 The project uses Jest for testing. Run the test suite with:
@@ -246,8 +222,6 @@ The test suite covers all major functionalities including:
 - Command execution with output capture
 - File operations (list, read, write, create, update, delete, check existence)
 - API endpoints
-
-Each component (commandExecutor, fileManager, apiServer) has its own dedicated test file with comprehensive test cases.
 
 ## License
 
