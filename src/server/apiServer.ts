@@ -95,7 +95,30 @@ export const createApiServer = async (workingDirectory: string): Promise<{
   
       // Handle 'cd' commands to change directories
       if (command.startsWith('cd ')) {
-        // ... (existing code)
+        const newDir = command.slice(3).trim();
+        const newPath = path.resolve(currentWorkingDirectory, newDir);
+        
+        try {
+          // Check if the new path exists
+          const exists = await checkExistence(newPath);
+          if (exists) {
+            currentWorkingDirectory = newPath;
+            res.status(200).json({
+              success: true,
+              result: `Changed directory to: ${currentWorkingDirectory}`,
+            });
+          } else {
+            res.status(400).json({
+              success: false,
+              result: `Directory not found: ${newPath}`,
+            });
+          }
+        } catch (error) {
+          res.status(400).json({
+            success: false,
+            result: `Error changing directory: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          });
+        }
       } else {
         // Optionally adjust the command for 'npm run build'
         if (command === 'npm run build') {
