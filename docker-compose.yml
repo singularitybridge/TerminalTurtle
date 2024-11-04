@@ -1,5 +1,7 @@
+version: '3.8'
+
 services:
-  ai-agent:
+  terminal-turtle:
     build: .
     ports:
       - "8080:8080"
@@ -7,10 +9,14 @@ services:
       - NODE_ENV=production
       - PORT=8080
       - WORKING_DIRECTORY=/data/workspace
-      - AGENT_NAME=default-agent
+      - AGENT_NAME=terminal-turtle
+      # Ngrok configuration
+      - ENABLE_NGROK=${ENABLE_NGROK:-false}
       - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
     volumes:
+      # Persistent workspace for file operations
       - ./workspace:/data/workspace
+      # Mount for agent credentials
       - ./credentials/.agent-credentials:/app/.agent-credentials
     restart: unless-stopped
     healthcheck:
@@ -19,3 +25,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
+    labels:
+      - "com.singularitybridge.description=TerminalTurtle - Developer-friendly terminal automation tool"
+      - "com.singularitybridge.repository=https://github.com/singularitybridge/TerminalTurtle"

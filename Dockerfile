@@ -3,10 +3,10 @@ FROM node:20-slim AS builder
 
 WORKDIR /app
 
-# Copy package files
+# Copy package files for efficient caching
 COPY package*.json ./
 
-# Install dependencies
+# Install dependencies with clean npm cache
 RUN npm ci
 
 # Copy source code
@@ -20,14 +20,16 @@ FROM node:20-slim
 
 WORKDIR /app
 
-# Install curl for healthcheck
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+# Install curl for healthcheck and cleanup in single layer
+RUN apt-get update && \
+    apt-get install -y curl && \
+    rm -rf /var/lib/apt/lists/*
 
 # Set default environment variables
 ENV NODE_ENV=production \
     PORT=8080 \
     WORKING_DIRECTORY=/data/workspace \
-    AGENT_NAME=default-agent
+    AGENT_NAME=terminal-turtle
 
 # Copy package files and install production dependencies only
 COPY package*.json ./
@@ -40,14 +42,24 @@ COPY --from=builder /app/dist ./dist
 RUN mkdir -p /data/workspace && \
     chown -R node:node /data/workspace
 
-# Set ownership of /app to node
+# Set ownership of /app to node user
 RUN chown -R node:node /app
 
-# Use non-root user
+# Use non-root user for security
 USER node
 
-# Expose port
+# Document the port being exposed
 EXPOSE 8080
+
+# Health check to ensure service is running properly
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
 
 # Start the application
 CMD ["node", "dist/main.js"]
+
+# Build-time metadata
+LABEL org.opencontainers.image.title="TerminalTurtle" \
+      org.opencontainers.image.description="A developer-friendly tool for secure terminal automation" \
+      org.opencontainers.image.source="https://github.com/singularitybridge/TerminalTurtle" \
+      org.opencontainers.image.licenses="MIT"

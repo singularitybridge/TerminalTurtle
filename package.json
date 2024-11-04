@@ -1,5 +1,5 @@
 {
-  "name": "ai-agent-executor",
+  "name": "terminal-turtle",
   "version": "1.0.0",
   "main": "dist/main.js",
   "directories": {
@@ -9,14 +9,29 @@
     "start": "node dist/main.js",
     "build": "tsc",
     "dev": "cross-env NODE_ENV=development nodemon --watch 'src/**/*.ts' --exec 'ts-node' src/main.ts",
-    "dev:local": "cross-env NODE_ENV=local nodemon --watch 'src/**/*.ts' --exec 'ts-node' src/main.ts",
     "test": "jest",
     "lint": "eslint . --ext .ts"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "AI Agent Executor for secure command execution and file management",
+  "keywords": [
+    "terminal",
+    "automation",
+    "developer-tools",
+    "cli",
+    "typescript",
+    "docker",
+    "api",
+    "devops"
+  ],
+  "author": "SingularityBridge",
+  "license": "MIT",
+  "description": "TerminalTurtle: A developer-friendly tool for secure terminal automation and remote command execution",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/singularitybridge/TerminalTurtle"
+  },
+  "bugs": {
+    "url": "https://github.com/singularitybridge/TerminalTurtle/issues"
+  },
   "dependencies": {
     "@types/axios": "^0.14.4",
     "@types/node": "^22.5.3",
