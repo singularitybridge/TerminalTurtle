@@ -13,38 +13,82 @@ The AI Agent Executor is an environment that allows an AI agent to execute comma
 - **Public URL Access**: Optional ngrok integration for exposing the server to the internet.
 - **Configuration**: Use environment variables for setup and sensitive information.
 - **Recursive File Listing**: Support for listing files and directories recursively.
+- **Docker Support**: Easy deployment with Docker and Docker Compose.
 
-## Project Structure
+## Docker Deployment
 
+The easiest way to run AI Agent Executor is using Docker Compose:
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/yourusername/ai-agent-executor.git
+   cd ai-agent-executor
+   ```
+
+2. **Configure ngrok (Optional):**
+   If you want to expose your server to the internet:
+   - Sign up for a free ngrok account at https://dashboard.ngrok.com/signup
+   - Get your authtoken from https://dashboard.ngrok.com/get-started/your-authtoken
+   - Create a `.env` file from the example:
+     ```bash
+     cp .env.example .env
+     ```
+   - Add your ngrok authtoken to the `.env` file:
+     ```
+     NGROK_AUTHTOKEN=your_ngrok_auth_token_here
+     ```
+
+3. **Start the container:**
+   ```bash
+   docker compose up -d
+   ```
+
+This will:
+- Build the Docker image with all necessary dependencies
+- Start the container with proper permissions
+- Create persistent volumes for workspace and credentials
+- Expose port 8080 for API access
+- Configure health checks
+
+### Environment Variables
+
+You can customize the deployment by modifying these environment variables in `.env` or `docker-compose.yml`:
+
+- `NODE_ENV`: Set to `production` or `development`
+- `PORT`: The port the server will listen on (default: 8080)
+- `WORKING_DIRECTORY`: Directory for file operations (default: /data/workspace)
+- `AGENT_NAME`: Name for your agent instance
+- `NGROK_AUTHTOKEN`: Your ngrok authentication token for public URL access
+
+### Persistent Storage
+
+The Docker setup includes two volume mounts for persistent data:
+- `./workspace:/data/workspace`: For maintaining files between container restarts
+- `./credentials:/app/.agent-credentials`: For persisting agent credentials
+
+### Docker Commands
+
+Common Docker operations:
+
+```bash
+# Start the service
+docker compose up -d
+
+# View logs
+docker compose logs -f
+
+# Stop the service
+docker compose down
+
+# Rebuild after changes
+docker compose build
+docker compose up -d
+
+# Check container health
+docker compose ps
 ```
-ai-agent-executor/
-├── .env.example
-├── src/
-│   ├── executor/
-│   │   ├── commandExecutor.ts
-│   │   └── fileManager.ts
-│   ├── server/
-│   │   └── apiServer.ts
-│   ├── utils/
-│   │   ├── logging.ts
-│   │   ├── security.ts
-│   │   └── ngrok.ts
-│   └── main.ts
-├── tests/
-│   ├── apiServer.test.ts
-│   ├── commandExecutor.test.ts
-│   └── fileManager.test.ts
-├── .gitignore
-├── Dockerfile
-├── jest.config.js
-├── package.json
-├── package-lock.json
-├── README.md
-├── requirements.txt
-└── tsconfig.json
-```
 
-## Setup
+## Local Setup (Non-Docker)
 
 1. **Clone the repository:**
 
@@ -66,9 +110,8 @@ ai-agent-executor/
 
      ```
      PORT=3001
-     WORKING_DIRECTORY=/path/to/your/working/directory
-     AUTH_TOKEN=your_auth_token
-     NGROK_AUTH_TOKEN=your_ngrok_auth_token  # Optional, for public URL access
+     WORKING_DIRECTORY=/path/to/your/working/directory     
+     NGROK_AUTHTOKEN=your_ngrok_auth_token  # Optional, for public URL access
      ```
 
 4. **Build the project:**
@@ -116,10 +159,10 @@ The server can optionally expose a public URL using ngrok. To enable this featur
 
 1. Sign up for a free ngrok account at https://dashboard.ngrok.com/signup
 2. Get your authtoken from https://dashboard.ngrok.com/get-started/your-authtoken
-3. Either:
-   - Add `NGROK_AUTH_TOKEN=your_token` to your `.env` file, or
-   - Run `ngrok config add-authtoken your_token` to set it system-wide
-4. Start the server with `npm run dev`
+3. Add your ngrok authtoken:
+   - For Docker: Add `NGROK_AUTHTOKEN=your_token` to your `.env` file
+   - For local development: Add `NGROK_AUTHTOKEN=your_token` to your `.env` file
+4. Start the server with `npm run dev` or `docker compose up -d`
 
 When running with ngrok enabled, the server will log the public URL that can be used to access your local server from anywhere.
 

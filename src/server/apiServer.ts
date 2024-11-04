@@ -58,6 +58,11 @@ export const createApiServer = (workingDirectory: string): express.Express => {
   // Initialize the current working directory
   let currentWorkingDirectory = path.resolve(workingDirectory);
 
+  // Health check endpoint
+  app.get('/health', (_req: Request, res: Response) => {
+    res.status(200).json({ status: 'healthy' });
+  });
+
   // Get agent information
   app.get('/agent-info', (req: Request, res: Response) => {
     try {

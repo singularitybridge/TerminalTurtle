@@ -7,13 +7,19 @@ import { connectNgrok, disconnectAll } from './utils/ngrok';
 import { AddressInfo } from 'net';
 import { setupAgent, getCredentials } from './utils/credentials';
 
-// Load environment variables
+// Load environment variables from .env file if it exists
 const envPath = path.resolve(__dirname, '../.env');
 const result = dotenv.config({ path: envPath });
 
 if (result.error) {
-  console.error('Error loading .env file:', result.error);
-  process.exit(1);
+  // Check if error is a NodeJS.ErrnoException which has the 'code' property
+  if ((result.error as NodeJS.ErrnoException).code !== 'ENOENT') {
+    // Only exit if there's an error other than the file not existing
+    console.error('Error loading .env file:', result.error);
+    process.exit(1);
+  } else {
+    console.warn('No .env file found. Proceeding with environment variables.');
+  }
 }
 
 const { PORT, WORKING_DIRECTORY } = process.env;
