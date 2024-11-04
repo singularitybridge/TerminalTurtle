@@ -10,7 +10,8 @@
     "build": "tsc",
     "dev": "cross-env NODE_ENV=development nodemon --watch 'src/**/*.ts' --exec 'ts-node' src/main.ts",
     "test": "jest",
-    "lint": "eslint . --ext .ts"
+    "lint": "eslint . --ext .ts",
+    "generate-credentials": "ts-node scripts/generateCredentials.ts"
   },
   "keywords": [
     "terminal",

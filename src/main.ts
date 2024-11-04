@@ -4,7 +4,7 @@ import fs from 'fs';
 import { createApiServer } from './server/apiServer';
 import { logger, setupUnhandledExceptionLogging } from './utils/logging';
 import { AddressInfo } from 'net';
-import { setupAgent } from './utils/credentials';
+import { getCredentials } from './utils/credentials';
 
 // Load environment variables from .env file if it exists
 const envPath = path.resolve(__dirname, '../.env');
@@ -64,10 +64,9 @@ const startServer = async (): Promise<void> => {
   logger.info(`Starting AI Agent Executor in ${process.env.NODE_ENV || 'development'} mode`);
   logger.info(`Configured working directory: ${WORKING_DIRECTORY}`);
 
-  // Initialize agent credentials if not already set up
+  // Initialize agent credentials from environment variables
   try {
-    const agentName = process.env.AGENT_NAME;
-    const credentials = setupAgent(agentName);
+    const credentials = getCredentials();
     logger.info('Agent configured successfully', {
       agentId: credentials.id,
       name: credentials.name,

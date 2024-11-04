@@ -5,19 +5,18 @@ services:
     build: .
     ports:
       - "8080:8080"
+    env_file: .env
     environment:
       - NODE_ENV=production
       - PORT=8080
       - WORKING_DIRECTORY=/data/workspace
-      - AGENT_NAME=terminal-turtle
+      - AGENT_NAME=${AGENT_NAME:-terminal-turtle}
       # Ngrok configuration
       - ENABLE_NGROK=${ENABLE_NGROK:-false}
       - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
     volumes:
       # Persistent workspace for file operations
       - ./workspace:/data/workspace
-      # Mount for agent credentials
-      - ./credentials/.agent-credentials:/app/.agent-credentials
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
