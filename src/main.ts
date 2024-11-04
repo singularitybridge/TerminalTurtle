@@ -21,11 +21,19 @@ if (result.error) {
   }
 }
 
-const { PORT, WORKING_DIRECTORY } = process.env;
+// Default values
+const DEFAULT_PORT = 3000;
+const DEFAULT_WORKING_DIRECTORY = path.resolve(__dirname, '../working_directory');
 
-if (!PORT || !WORKING_DIRECTORY) {
-  logger.error('Missing required environment variables');
-  process.exit(1);
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : DEFAULT_PORT;
+const WORKING_DIRECTORY = process.env.WORKING_DIRECTORY || DEFAULT_WORKING_DIRECTORY;
+
+if (!process.env.PORT) {
+  logger.warn(`PORT not set in environment. Using default port: ${DEFAULT_PORT}`);
+}
+
+if (!process.env.WORKING_DIRECTORY) {
+  logger.warn(`WORKING_DIRECTORY not set in environment. Using default: ${DEFAULT_WORKING_DIRECTORY}`);
 }
 
 setupUnhandledExceptionLogging();
@@ -94,8 +102,8 @@ const startServer = async (): Promise<void> => {
     const { start } = await createApiServer(WORKING_DIRECTORY);
 
     // Find an available port starting from the configured PORT
-    const availablePort = await findAvailablePort(Number(PORT));
-    if (availablePort !== Number(PORT)) {
+    const availablePort = await findAvailablePort(PORT);
+    if (availablePort !== PORT) {
       logger.info(`Port ${PORT} was in use, using port ${availablePort} instead`);
     }
 

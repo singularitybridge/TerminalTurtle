@@ -11,12 +11,12 @@ export const setupNgrok = async (port: number): Promise<NgrokConnection | null> 
   const authtoken = process.env.NGROK_AUTHTOKEN;
 
   if (!enableNgrok) {
-    logger.info('Ngrok is disabled');
+    logger.info('Ngrok is not enabled. Set ENABLE_NGROK=true in your .env file to enable it.');
     return null;
   }
 
   if (!authtoken) {
-    logger.error('Ngrok auth token is required but not provided');
+    logger.warn('Ngrok auth token is not provided. Set NGROK_AUTHTOKEN in your .env file to use ngrok.');
     return null;
   }
 
