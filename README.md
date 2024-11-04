@@ -77,11 +77,6 @@ AGENT_NAME=terminal-turtle
 # Ngrok Configuration
 ENABLE_NGROK=false       # Set to 'true' to enable ngrok tunneling
 NGROK_AUTHTOKEN=         # Your ngrok auth token (required if ENABLE_NGROK=true)
-
-# Optional Settings
-LOG_LEVEL=info
-MAX_FILE_SIZE=10485760   # 10MB in bytes
-COMMAND_TIMEOUT=30000    # 30 seconds
 ```
 
 ## 📡 API Usage
