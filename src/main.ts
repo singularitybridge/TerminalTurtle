@@ -3,9 +3,8 @@ import path from 'path';
 import fs from 'fs';
 import { createApiServer } from './server/apiServer';
 import { logger, setupUnhandledExceptionLogging } from './utils/logging';
-import { connectNgrok, disconnectAll } from './utils/ngrok';
 import { AddressInfo } from 'net';
-import { setupAgent, getCredentials } from './utils/credentials';
+import { setupAgent } from './utils/credentials';
 
 // Load environment variables from .env file if it exists
 const envPath = path.resolve(__dirname, '../.env');
@@ -23,7 +22,6 @@ if (result.error) {
 }
 
 const { PORT, WORKING_DIRECTORY } = process.env;
-const isLocalMode = process.env.NODE_ENV === 'local';
 
 if (!PORT || !WORKING_DIRECTORY) {
   logger.error('Missing required environment variables');
@@ -55,7 +53,7 @@ const findAvailablePort = async (startPort: number): Promise<number> => {
 };
 
 const startServer = async (): Promise<void> => {
-  logger.info(`Starting AI Agent Executor in ${isLocalMode ? 'local' : 'development'} mode`);
+  logger.info(`Starting AI Agent Executor in ${process.env.NODE_ENV || 'development'} mode`);
   logger.info(`Configured working directory: ${WORKING_DIRECTORY}`);
 
   // Initialize agent credentials if not already set up
@@ -91,65 +89,18 @@ const startServer = async (): Promise<void> => {
     process.exit(1);
   }
 
-  const app = createApiServer(WORKING_DIRECTORY);
-
   try {
+    // Create API server
+    const { start } = await createApiServer(WORKING_DIRECTORY);
+
     // Find an available port starting from the configured PORT
     const availablePort = await findAvailablePort(Number(PORT));
     if (availablePort !== Number(PORT)) {
       logger.info(`Port ${PORT} was in use, using port ${availablePort} instead`);
     }
 
-    const server = app.listen(availablePort, async () => {
-      logger.info(`AI Agent Executor is listening on port ${availablePort}`);
-      logger.info(`Working directory: ${WORKING_DIRECTORY}`);
-
-      // Only initialize ngrok in development mode
-      if (!isLocalMode) {
-        try {
-          const ngrokConnection = await connectNgrok({
-            port: availablePort,
-          });
-          
-          logger.info(`Public URL available at: ${ngrokConnection.url}`);
-
-          // Get agent credentials for notification
-          const credentials = getCredentials();
-          logger.info('Agent ready', {
-            agentId: credentials.id,
-            name: credentials.name,
-            url: ngrokConnection.url,
-          });
-
-          // Store the disconnect function for cleanup
-          process.on('SIGINT', async () => {
-            logger.info('Shutting down ngrok tunnel...');
-            await ngrokConnection.disconnect().catch(err => {
-              // Error already logged in the ngrok utility
-            });
-            logger.info('Shutting down AI Agent Executor');
-            server.close();
-            process.exit(0);
-          });
-        } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-          logger.error('Ngrok tunnel setup failed', {
-            error: errorMessage,
-            note: 'Server will continue running without public URL access'
-          });
-        }
-      }
-    });
-
-    // Handle server shutdown
-    server.on('close', async () => {
-      logger.info('Server closing, cleaning up...');
-      if (!isLocalMode) {
-        await disconnectAll().catch(err => {
-          // Error already logged in the ngrok utility
-        });
-      }
-    });
+    // Start the server
+    const server = await start(availablePort);
 
     // Handle server errors
     server.on('error', (error: NodeJS.ErrnoException) => {
@@ -159,6 +110,14 @@ const startServer = async (): Promise<void> => {
         logger.error('Server error', { error });
       }
       process.exit(1);
+    });
+
+    // Handle graceful shutdown
+    process.on('SIGINT', () => {
+      logger.info('Shutting down AI Agent Executor');
+      server.close(() => {
+        process.exit(0);
+      });
     });
 
   } catch (error) {

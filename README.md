@@ -79,6 +79,19 @@ ENABLE_NGROK=false       # Set to 'true' to enable ngrok tunneling
 NGROK_AUTHTOKEN=         # Your ngrok auth token (required if ENABLE_NGROK=true)
 ```
 
+### API Authentication
+
+The API requires authentication using an API key. The API key is automatically generated and stored in the `.agent-credentials` file when the application starts. You'll need to include this API key in the `Authorization` header of your requests:
+
+```
+Authorization: Bearer YOUR_API_KEY
+```
+
+The `.agent-credentials` file contains:
+- `id`: A unique identifier for the agent
+- `apiKey`: The API key to use for authentication
+- `name`: The agent name as specified in your environment variables
+
 ## 📡 API Usage
 
 ### Command Execution

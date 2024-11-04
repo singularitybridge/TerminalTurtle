@@ -14,6 +14,8 @@ import {
 } from '../executor/fileManager';
 import { logger } from '../utils/logging';
 import { getCredentials } from '../utils/credentials';
+import { setupNgrok } from '../utils/ngrok';
+import { Server } from 'http';
 
 // Custom interface for authenticated requests
 interface AuthenticatedRequest extends Request {
@@ -51,7 +53,10 @@ const authenticateRequest = (
   }
 };
 
-export const createApiServer = (workingDirectory: string): express.Express => {
+export const createApiServer = async (workingDirectory: string): Promise<{ 
+  app: express.Express, 
+  start: (port: number) => Promise<Server>
+}> => {
   const app = express();
   app.use(express.json());
 
@@ -115,7 +120,6 @@ export const createApiServer = (workingDirectory: string): express.Express => {
       });
     }
   });
-  
 
   /**
    * Endpoint to perform file operations.
@@ -148,7 +152,33 @@ export const createApiServer = (workingDirectory: string): express.Express => {
     }
   });
 
-  return app;
+  const start = async (port: number): Promise<Server> => {
+    return new Promise((resolve, reject) => {
+      const server = app.listen(port, async () => {
+        logger.info(`AI Agent Executor is listening on port ${port}`);
+        logger.info(`Working directory: ${workingDirectory}`);
+
+        // Setup ngrok after server starts
+        const ngrokConnection = await setupNgrok(port);
+        
+        if (ngrokConnection) {
+          // Handle cleanup when server closes
+          server.on('close', async () => {
+            logger.info('Server closing, cleaning up...');
+            await ngrokConnection.disconnect();
+          });
+        }
+
+        resolve(server);
+      });
+
+      server.on('error', (error: Error) => {
+        reject(error);
+      });
+    });
+  };
+
+  return { app, start };
 };
 
 const handleFileOperation = async (
