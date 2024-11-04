@@ -19,6 +19,7 @@ export const executeCommand = async (
   command: string,
   workingDirectory: string
 ): Promise<{ 
+  success: boolean;
   stdout: string; 
   stderr: string; 
   exitCode: number;
@@ -34,7 +35,7 @@ export const executeCommand = async (
     });
 
     // Create promise that resolves with command output
-    const execPromise = new Promise<{stdout: string, stderr: string}>((resolve, reject) => {
+    const execPromise = new Promise<{stdout: string, stderr: string, exitCode: number}>((resolve, reject) => {
       let stdout = '';
       let stderr = '';
 
@@ -46,19 +47,17 @@ export const executeCommand = async (
         stderr += data;
       });
 
-      childProcess.on('error', reject);
+      childProcess.on('error', (error) => {
+        reject(new Error(`Command failed: ${error.message}`));
+      });
 
       childProcess.on('close', (code) => {
-        if (code === 0) {
-          resolve({ stdout, stderr });
-        } else {
-          reject(new Error(`Command failed with exit code ${code}`));
-        }
+        resolve({ stdout, stderr, exitCode: code ?? -1 });
       });
     });
 
     // Race between command execution and timeout
-    const { stdout, stderr } = await Promise.race([
+    const { stdout, stderr, exitCode } = await Promise.race([
       execPromise,
       createTimeout(childProcess)
     ]);
@@ -68,9 +67,10 @@ export const executeCommand = async (
     const cleanStderr = stripAnsi(stderr);
 
     return { 
+      success: exitCode === 0,
       stdout: cleanStdout, 
       stderr: cleanStderr, 
-      exitCode: 0 
+      exitCode 
     };
   } catch (error) {
     const err = error as any;
@@ -78,6 +78,7 @@ export const executeCommand = async (
     // Handle timeout error specifically
     if (err.message && err.message.includes('Command timed out')) {
       return {
+        success: false,
         stdout: '',
         stderr: `Command terminated: ${err.message}`,
         exitCode: 124, // Standard timeout exit code
@@ -87,9 +88,10 @@ export const executeCommand = async (
 
     // Handle other errors
     const stdout = stripAnsi(err.stdout || '');
-    const stderr = stripAnsi(err.stderr || '');
+    const stderr = stripAnsi(err.stderr || err.message || 'Unknown error occurred');
 
     return {
+      success: false,
       stdout,
       stderr,
       exitCode: err.code || -1,
