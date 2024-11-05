@@ -20,9 +20,12 @@ FROM node:20-slim
 
 WORKDIR /app
 
-# Install curl for healthcheck and cleanup in single layer
+# Install curl and ngrok in a single layer for efficiency
 RUN apt-get update && \
-    apt-get install -y curl && \
+    apt-get install -y curl wget unzip && \
+    wget -q -O /tmp/ngrok.zip https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-stable-linux-amd64.zip && \
+    unzip /tmp/ngrok.zip -d /usr/local/bin && \
+    rm /tmp/ngrok.zip && \
     rm -rf /var/lib/apt/lists/*
 
 # Set default environment variables

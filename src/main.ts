@@ -5,6 +5,7 @@ import { createApiServer } from './server/apiServer';
 import { logger, setupUnhandledExceptionLogging } from './utils/logging';
 import { AddressInfo } from 'net';
 import { getCredentials } from './utils/credentials';
+import { setupNgrok } from './utils/ngrok';
 
 // Load environment variables from .env file if it exists
 const envPath = path.resolve(__dirname, '../.env');
@@ -109,6 +110,9 @@ const startServer = async (): Promise<void> => {
     // Start the server
     const server = await start(availablePort);
 
+    // Setup ngrok after server starts
+    const ngrokConnection = await setupNgrok(availablePort);
+
     // Handle server errors
     server.on('error', (error: NodeJS.ErrnoException) => {
       if (error.code === 'EADDRINUSE') {
@@ -120,8 +124,11 @@ const startServer = async (): Promise<void> => {
     });
 
     // Handle graceful shutdown
-    process.on('SIGINT', () => {
+    process.on('SIGINT', async () => {
       logger.info('Shutting down AI Agent Executor');
+      if (ngrokConnection) {
+        await ngrokConnection.disconnect();
+      }
       server.close(() => {
         process.exit(0);
       });
