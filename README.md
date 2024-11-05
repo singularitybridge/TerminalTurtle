@@ -23,18 +23,20 @@ TerminalTurtle is an open-source developer tool that provides secure terminal au
    cd TerminalTurtle
    ```
 
-2. **Configure environment:**
+2. **Run the deployment script:**
    ```bash
-   cp .env.example .env
-   # Edit .env with your settings:
-   # - Set ENABLE_NGROK=true/false as needed
-   # - Add NGROK_AUTHTOKEN if using ngrok
+   chmod +x deploy.sh
+   ./deploy.sh
    ```
 
-3. **Start the container:**
-   ```bash
-   docker compose up -d
-   ```
+   This script will:
+   - Create a .env file if it doesn't exist
+   - Generate API credentials (AGENT_ID and API_KEY) if they don't exist
+   - Update the .env file with the credentials
+   - Start the Docker container
+
+3. **Access the application:**
+   The application will be available at `http://localhost:8080`
 
 ### Local Setup
 
@@ -51,7 +53,12 @@ TerminalTurtle is an open-source developer tool that provides secure terminal au
    # Edit .env with your settings
    ```
 
-3. **Run the application:**
+3. **Generate credentials:**
+   ```bash
+   npm run generate-credentials
+   ```
+
+4. **Run the application:**
    ```bash
    # Development mode
    npm run dev
@@ -74,6 +81,10 @@ PORT=8080                 # Server port
 WORKING_DIRECTORY=/data/workspace
 AGENT_NAME=terminal-turtle
 
+# API Credentials
+AGENT_ID=                 # Generated automatically by deploy.sh or npm run generate-credentials
+API_KEY=                  # Generated automatically by deploy.sh or npm run generate-credentials
+
 # Ngrok Configuration
 ENABLE_NGROK=false       # Set to 'true' to enable ngrok tunneling
 NGROK_AUTHTOKEN=         # Your ngrok auth token (required if ENABLE_NGROK=true)
@@ -81,16 +92,11 @@ NGROK_AUTHTOKEN=         # Your ngrok auth token (required if ENABLE_NGROK=true)
 
 ### API Authentication
 
-The API requires authentication using an API key. The API key is automatically generated and stored in the `.agent-credentials` file when the application starts. You'll need to include this API key in the `Authorization` header of your requests:
+The API requires authentication using an API key. The API key is automatically generated and stored in the `.env` file when you run the `deploy.sh` script or use the `npm run generate-credentials` command. You'll need to include this API key in the `Authorization` header of your requests:
 
 ```
 Authorization: Bearer YOUR_API_KEY
 ```
-
-The `.agent-credentials` file contains:
-- `id`: A unique identifier for the agent
-- `apiKey`: The API key to use for authentication
-- `name`: The agent name as specified in your environment variables
 
 ## 📡 API Usage
 
@@ -130,6 +136,9 @@ curl -X POST http://localhost:8080/file-operation \
 ```bash
 # Install dependencies
 npm install
+
+# Generate credentials
+npm run generate-credentials
 
 # Start development server
 npm run dev

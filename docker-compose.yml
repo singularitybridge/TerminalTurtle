@@ -11,6 +11,8 @@ services:
       - PORT=8080
       - WORKING_DIRECTORY=/data/workspace
       - AGENT_NAME=${AGENT_NAME:-terminal-turtle}
+      - AGENT_ID=${AGENT_ID}
+      - API_KEY=${API_KEY}
       # Ngrok configuration
       - ENABLE_NGROK=${ENABLE_NGROK:-false}
       - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
