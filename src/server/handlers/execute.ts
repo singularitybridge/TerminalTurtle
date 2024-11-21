@@ -1,84 +1,48 @@
 import { Response } from 'express';
-import path from 'path';
 import { executeCommand } from '../../executor/commandExecutor';
-import { checkExistence } from '../../executor/fileManager';
 import { logger } from '../../utils/logging';
 import { AuthenticatedRequest } from '../middleware/auth';
-
-interface CommandResponse {
-  success: boolean;
-  exitCode?: number;
-  result: string;
-}
-
-const handleChangeDirectory = async (command: string, currentWorkingDirectory: string): Promise<CommandResponse> => {
-  const newDir = command.slice(3).trim();
-  const newPath = path.resolve(currentWorkingDirectory, newDir);
-  
-  try {
-    const exists = await checkExistence(newPath);
-    if (exists) {
-      return {
-        success: true,
-        result: `Changed directory to: ${newPath}`,
-      };
-    } else {
-      return {
-        success: false,
-        result: `Directory not found: ${newPath}`,
-      };
-    }
-  } catch (error) {
-    return {
-      success: false,
-      result: `Error changing directory: ${error instanceof Error ? error.message : 'Unknown error'}`,
-    };
-  }
-};
-
-const logFormattedResult = (result: string): void => {
-  const separator = '-'.repeat(50);
-  const formattedResult = `
-${separator}
-${result}
-${separator}
-`.trim();
-
-  logger.info(`Response:\n${formattedResult}`);
-};
+import { createTask, updateTask } from '../../executor/taskManager';
 
 export const handleExecute = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  logger.info(`Received execute request:\n> ${req.body.command}`);
+  const { command } = req.body;
 
-  try {
-    let { command } = req.body;
-    let response: CommandResponse;
+  // Create a new task
+  const task = createTask(command);
+  logger.info(`Created task ${task.id} for command: ${command}`);
 
-    if (command.startsWith('cd ')) {
-      response = await handleChangeDirectory(command, req.app.locals.currentWorkingDirectory);
-      req.app.locals.currentWorkingDirectory = response.result.split(': ')[1];
-    } else {
-      if (command === 'npm run build') {
-        command = 'npm run build -- --pretty';
-      }
-      const result = await executeCommand(command, req.app.locals.currentWorkingDirectory);
-      response = {
-        success: true,
+  // Respond immediately with the task ID
+  res.status(202).json({ taskId: task.id });
+
+  // Start command execution in the background
+  (async () => {
+    try {
+      updateTask(task.id, { status: 'running' });
+
+      const result = await executeCommand(
+        command,
+        req.app.locals.currentWorkingDirectory,
+        (data: string) => {
+          // Update task with new output
+          updateTask(task.id, { output: data });
+        }
+      );
+
+      updateTask(task.id, {
+        status: 'completed',
         exitCode: result.exitCode,
-        result: result.stdout + result.stderr || 'Command executed successfully',
-      };
-    }
+        output: result.output, // This will append the final output
+      });
 
-    logFormattedResult(response.result);
-    res.status(response.success ? 200 : 400).json(response);
-  } catch (error) {
-    const err = error as any;
-    const response: CommandResponse = {
-      success: false,
-      exitCode: err.exitCode || -1,
-      result: err.stdout + err.stderr || 'An error occurred.',
-    };
-    logFormattedResult(response.result);
-    res.status(500).json(response);
-  }
+      logger.info(`Task ${task.id} completed with exit code ${result.exitCode}`);
+    } catch (error) {
+      const err = error as Error;
+      updateTask(task.id, {
+        status: 'failed',
+        error: err.message,
+      });
+
+      logger.error(`Task ${task.id} failed: ${err.message}`);
+    }
+  })();
 };

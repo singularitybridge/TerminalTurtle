@@ -8,6 +8,7 @@ import { handleHealthCheck } from './handlers/healthCheck';
 import { handleAgentInfo } from './handlers/agentInfo';
 import { handleExecute } from './handlers/execute';
 import { handleFileOperation } from './handlers/fileOperation';
+import { handleTaskStatus } from './handlers/taskStatus';
 
 export const createApiServer = async (workingDirectory: string): Promise<{ 
   app: express.Express, 
@@ -21,9 +22,10 @@ export const createApiServer = async (workingDirectory: string): Promise<{
   app.get('/health', handleHealthCheck);
   app.get('/agent-info', handleAgentInfo);
 
-  app.use(['/execute', '/file-operation'], authenticateRequest);
+  app.use(['/execute', '/file-operation', '/tasks'], authenticateRequest);
   app.post('/execute', handleExecute);
   app.post('/file-operation', handleFileOperation);
+  app.get('/tasks/:taskId', handleTaskStatus);
 
   const start = async (port: number): Promise<Server> => {
     return new Promise((resolve, reject) => {
