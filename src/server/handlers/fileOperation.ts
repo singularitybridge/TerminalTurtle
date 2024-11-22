@@ -13,6 +13,7 @@ import {
 } from '../../executor/fileManager';
 import { logger } from '../../utils/logging';
 import { AuthenticatedRequest } from '../middleware/auth';
+import { getClientWorkingDirectory } from '../../utils/clientDirectories';
 
 const performFileOperation = async (workingDirectory: string, req: any): Promise<any> => {
   const { operation, path: relativePath, content, recursive, mode } = req;
@@ -53,14 +54,23 @@ const performFileOperation = async (workingDirectory: string, req: any): Promise
 };
 
 export const handleFileOperation = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  const clientId = req.agentId as string;
+
+  if (!clientId) {
+    res.status(401).json({ error: 'Unauthorized: Missing client ID' });
+    return;
+  }
+
   try {
-    const result = await performFileOperation(req.app.locals.currentWorkingDirectory, req.body);
+    const baseWorkingDirectory = req.app.locals.baseWorkingDirectory;
+    const workingDirectory = getClientWorkingDirectory(clientId, baseWorkingDirectory);
+    const result = await performFileOperation(workingDirectory, req.body);
     res.json({ result });
   } catch (error) {
     logger.error('Error performing file operation', {
       error,
       request: req.body,
-      agentId: req.agentId,
+      agentId: clientId,
     });
     if (error instanceof Error && error.message === 'File or directory not found') {
       res.status(404).json({ error: 'File or directory not found' });

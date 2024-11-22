@@ -3,11 +3,22 @@ import { executeCommand } from '../../executor/commandExecutor';
 import { logger } from '../../utils/logging';
 import { AuthenticatedRequest } from '../middleware/auth';
 import { createTask, updateTask, getTaskOutput } from '../../executor/taskManager';
+import { getClientWorkingDirectory } from '../../utils/clientDirectories';
 
 const INITIAL_RESPONSE_TIMEOUT = 10000; // 10 seconds
 
 export const handleExecute = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   const { command } = req.body;
+  const clientId = req.agentId as string;
+
+  if (!clientId) {
+    res.status(401).json({ error: 'Unauthorized: Missing client ID' });
+    return;
+  }
+
+  // Get the client-specific working directory
+  const baseWorkingDirectory = req.app.locals.baseWorkingDirectory;
+  const workingDirectory = getClientWorkingDirectory(clientId, baseWorkingDirectory);
 
   // Create a new task
   const task = createTask(command);
@@ -18,7 +29,7 @@ export const handleExecute = async (req: AuthenticatedRequest, res: Response): P
 
   const executionPromise = executeCommand(
     command,
-    req.app.locals.currentWorkingDirectory,
+    workingDirectory,
     (data: string) => {
       updateTask(task.id, { output: data });
     }

@@ -9,6 +9,7 @@ import { handleAgentInfo } from './handlers/agentInfo';
 import { handleExecute } from './handlers/execute';
 import { handleFileOperation } from './handlers/fileOperation';
 import { handleTaskStatus } from './handlers/taskStatus';
+import { handleChangeDirectory } from './handlers/changeDirectory';
 
 export const createApiServer = async (workingDirectory: string): Promise<{ 
   app: express.Express, 
@@ -17,21 +18,22 @@ export const createApiServer = async (workingDirectory: string): Promise<{
   const app = express();
   app.use(express.json());
 
-  app.locals.currentWorkingDirectory = path.resolve(workingDirectory);
+  app.locals.baseWorkingDirectory = path.resolve(workingDirectory);
 
   app.get('/health', handleHealthCheck);
   app.get('/agent-info', handleAgentInfo);
 
-  app.use(['/execute', '/file-operation', '/tasks'], authenticateRequest);
+  app.use(['/execute', '/file-operation', '/tasks', '/change-directory'], authenticateRequest);
   app.post('/execute', handleExecute);
   app.post('/file-operation', handleFileOperation);
   app.get('/tasks/:taskId', handleTaskStatus);
+  app.post('/change-directory', handleChangeDirectory);
 
   const start = async (port: number): Promise<Server> => {
     return new Promise((resolve, reject) => {
       const server = app.listen(port, async () => {
         logger.info(`AI Agent Executor is listening on port ${port}`);
-        logger.info(`Working directory: ${workingDirectory}`);
+        logger.info(`Base working directory: ${workingDirectory}`);
 
         const ngrokConnection = await setupNgrok(port);
         

@@ -6,6 +6,7 @@ import { logger, setupUnhandledExceptionLogging } from './utils/logging';
 import { AddressInfo } from 'net';
 import { getCredentials } from './utils/credentials';
 import { setupNgrok } from './utils/ngrok';
+import { cleanupInactiveClientDirectories } from './utils/clientDirectories';
 
 // Load environment variables from .env file if it exists
 const envPath = path.resolve(__dirname, '../.env');
@@ -25,6 +26,8 @@ if (result.error) {
 // Default values
 const DEFAULT_PORT = 3000;
 const DEFAULT_WORKING_DIRECTORY = path.resolve(__dirname, '../working_directory');
+const CLEANUP_INTERVAL = 3600000; // 1 hour in milliseconds
+const INACTIVE_THRESHOLD = 86400000; // 24 hours in milliseconds
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : DEFAULT_PORT;
 const WORKING_DIRECTORY = process.env.WORKING_DIRECTORY || DEFAULT_WORKING_DIRECTORY;
@@ -112,6 +115,16 @@ const startServer = async (): Promise<void> => {
 
     // Setup ngrok after server starts
     const ngrokConnection = await setupNgrok(availablePort);
+
+    // Set up periodic cleanup of inactive client directories
+    setInterval(() => {
+      cleanupInactiveClientDirectories(INACTIVE_THRESHOLD)
+        .catch(error => {
+          logger.error('Error during cleanup of inactive client directories', {
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
+        });
+    }, CLEANUP_INTERVAL);
 
     // Handle server errors
     server.on('error', (error: NodeJS.ErrnoException) => {

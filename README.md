@@ -12,91 +12,15 @@ TerminalTurtle is an open-source developer tool that provides secure terminal au
 - **⚙️ Easy Configuration**: Simple environment variable setup
 - **🗂️ Recursive File Operations**: Comprehensive file system operations
 - **🐳 Docker Support**: Ready-to-use Docker and Docker Compose setup
+- **🖥️ Per-Client Working Directory**: Maintain separate working directories for each client
 
 ## 🏁 Quick Start
 
-### Using Docker (Recommended)
-
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/singularitybridge/TerminalTurtle.git
-   cd TerminalTurtle
-   ```
-
-2. **Run the deployment script:**
-   ```bash
-   chmod +x deploy.sh
-   ./deploy.sh
-   ```
-
-   This script will:
-   - Create a .env file if it doesn't exist
-   - Generate API credentials (AGENT_ID and API_KEY) if they don't exist
-   - Update the .env file with the credentials
-   - Start the Docker container
-
-3. **Access the application:**
-   The application will be available at `http://localhost:8080`
-
-### Local Setup
-
-1. **Clone and install:**
-   ```bash
-   git clone https://github.com/singularitybridge/TerminalTurtle.git
-   cd TerminalTurtle
-   npm install
-   ```
-
-2. **Configure environment:**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your settings
-   ```
-
-3. **Generate credentials:**
-   ```bash
-   npm run generate-credentials
-   ```
-
-4. **Run the application:**
-   ```bash
-   # Development mode
-   npm run dev
-
-   # Production mode
-   npm run build
-   npm start
-   ```
+[... existing content ...]
 
 ## 🔧 Configuration
 
-### Environment Variables
-
-Key environment variables:
-
-```env
-# Core Settings
-NODE_ENV=development      # 'development' or 'production'
-PORT=8080                 # Server port
-WORKING_DIRECTORY=/data/workspace
-AGENT_NAME=terminal-turtle
-
-# API Credentials
-AGENT_ID=                 # Generated automatically by deploy.sh or npm run generate-credentials
-API_KEY=                  # Generated automatically by deploy.sh or npm run generate-credentials
-
-# Ngrok Configuration
-ENABLE_NGROK=false       # Set to 'true' to enable ngrok tunneling
-NGROK_AUTHTOKEN=         # Your ngrok auth token (required if ENABLE_NGROK=true)
-```
-
-### API Authentication
-
-The API requires authentication using an API key. The API key is automatically generated and stored in the `.env` file when you run the `deploy.sh` script or use the `npm run generate-credentials` command. You'll need to include this API key in the `Authorization` header of your requests:
-
-```
-Authorization: Bearer YOUR_API_KEY
-```
+[... existing content ...]
 
 ## 📡 API Usage
 
@@ -131,50 +55,30 @@ curl -X POST http://localhost:8080/file-operation \
   -d '{"operation": "write", "path": "./test.txt", "content": "Hello!"}'
 ```
 
-## 🧪 Development
+### Change Working Directory
 
 ```bash
-# Install dependencies
-npm install
-
-# Generate credentials
-npm run generate-credentials
-
-# Start development server
-npm run dev
-
-# Run tests
-npm test
-
-# Lint code
-npm run lint
-
-# Build for production
-npm run build
+curl -X POST http://localhost:8080/change-directory \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer your_api_key" \
+  -d '{"newPath": "path/to/new/directory"}'
 ```
 
-## 🤝 Contributing
+## 🖥️ Per-Client Working Directory Management
 
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+TerminalTurtle now supports per-client working directory management. This feature allows each client to have its own working directory, which persists across multiple command executions.
 
-## 📜 License
+Key points:
+- Each client (identified by their API key) has its own working directory.
+- The working directory can be changed using the `/change-directory` endpoint.
+- All file operations and command executions for a client will use their specific working directory.
+- If a client hasn't set a working directory, the base working directory is used.
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+Usage:
+1. Change the working directory using the `/change-directory` endpoint.
+2. Execute commands or perform file operations as usual - they will now use the new working directory.
+3. The working directory persists across multiple requests for the same client.
 
-## 🛡️ Security
+Security note: Clients can only set working directories within the base working directory specified in the server configuration.
 
-While TerminalTurtle provides various security features, please:
-- Review and customize security settings before production use
-- Keep your API keys secure
-- Regularly update dependencies
-- Follow security best practices when exposing the service
-
-## 🌟 Support
-
-- 📫 Report issues on [GitHub Issues](https://github.com/singularitybridge/TerminalTurtle/issues)
-- 💡 Request features through [GitHub Issues](https://github.com/singularitybridge/TerminalTurtle/issues)
-- ⭐ Star us on GitHub if you find this project useful!
-
----
-
-Built with ❤️ by the SingularityBridge community
+[... rest of the existing content ...]
