@@ -59,3 +59,17 @@ export const getTaskOutput = (id: string): string => {
   const task = tasks.get(id);
   return task ? task.outputChunks.join('') : '';
 };
+
+export const getAllTasks = (): Task[] => {
+  return Array.from(tasks.values());
+};
+
+export const endTask = (id: string): boolean => {
+  const task = tasks.get(id);
+  if (task && (task.status === 'pending' || task.status === 'running')) {
+    task.status = 'completed';
+    task.updatedAt = new Date();
+    return true;
+  }
+  return false;
+};

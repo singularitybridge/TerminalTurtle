@@ -10,6 +10,8 @@ import { handleExecute } from './handlers/execute';
 import { handleFileOperation } from './handlers/fileOperation';
 import { handleTaskStatus } from './handlers/taskStatus';
 import { handleChangeDirectory } from './handlers/changeDirectory';
+import { handleGetAllTasks } from './handlers/getAllTasks';
+import { handleEndTask } from './handlers/endTask';
 
 export const createApiServer = async (workingDirectory: string): Promise<{ 
   app: express.Express, 
@@ -20,13 +22,17 @@ export const createApiServer = async (workingDirectory: string): Promise<{
 
   app.locals.baseWorkingDirectory = path.resolve(workingDirectory);
 
+  // Public routes
   app.get('/health', handleHealthCheck);
   app.get('/agent-info', handleAgentInfo);
 
+  // Protected routes
   app.use(['/execute', '/file-operation', '/tasks', '/change-directory'], authenticateRequest);
   app.post('/execute', handleExecute);
   app.post('/file-operation', handleFileOperation);
+  app.get('/tasks', handleGetAllTasks);
   app.get('/tasks/:taskId', handleTaskStatus);
+  app.post('/tasks/:taskId/end', handleEndTask);
   app.post('/change-directory', handleChangeDirectory);
 
   const start = async (port: number): Promise<Server> => {
