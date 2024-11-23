@@ -2,7 +2,7 @@ import { Response } from 'express';
 import { executeCommand } from '../../executor/commandExecutor';
 import { logger } from '../../utils/logging';
 import { AuthenticatedRequest } from '../middleware/auth';
-import { createTask, updateTask, getTaskOutput } from '../../executor/taskManager';
+import { createTask, updateTask, getTaskOutput, setTaskProcess, deleteTaskProcess } from '../../executor/taskManager';
 import { getClientWorkingDirectory } from '../../utils/clientDirectories';
 
 const INITIAL_RESPONSE_TIMEOUT = 10000; // 10 seconds
@@ -27,13 +27,16 @@ export const handleExecute = async (req: AuthenticatedRequest, res: Response): P
   let commandCompleted = false;
   let initialOutputSent = false;
 
-  const executionPromise = executeCommand(
+  const { ptyProcess, resultPromise } = executeCommand(
     command,
     workingDirectory,
     (data: string) => {
       updateTask(task.id, { output: data });
     }
   );
+
+  // Store the ptyProcess
+  setTaskProcess(task.id, ptyProcess);
 
   const timeoutPromise = new Promise<void>((resolve) => {
     setTimeout(() => {
@@ -47,7 +50,7 @@ export const handleExecute = async (req: AuthenticatedRequest, res: Response): P
   });
 
   try {
-    const result = await Promise.race([executionPromise, timeoutPromise]);
+    const result = await Promise.race([resultPromise, timeoutPromise]);
 
     if (result) {
       // Command completed before timeout
@@ -76,7 +79,7 @@ export const handleExecute = async (req: AuthenticatedRequest, res: Response): P
 
     // If initial output was sent, continue execution in the background
     if (initialOutputSent && !commandCompleted) {
-      executionPromise.then((result) => {
+      resultPromise.then((result) => {
         updateTask(task.id, {
           status: 'completed',
           exitCode: result.exitCode,
@@ -90,7 +93,11 @@ export const handleExecute = async (req: AuthenticatedRequest, res: Response): P
           error: err.message,
         });
         logger.error(`Task ${task.id} failed: ${err.message}`);
+      }).finally(() => {
+        deleteTaskProcess(task.id);
       });
+    } else {
+      deleteTaskProcess(task.id);
     }
   } catch (error) {
     const err = error as Error;
@@ -104,5 +111,6 @@ export const handleExecute = async (req: AuthenticatedRequest, res: Response): P
     }
 
     logger.error(`Task ${task.id} failed: ${err.message}`);
+    deleteTaskProcess(task.id);
   }
 };

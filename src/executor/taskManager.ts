@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
+import * as pty from 'node-pty';
 
 const MAX_OUTPUT_SIZE = 1024 * 1024; // 1 MB
 
@@ -14,6 +15,7 @@ interface Task {
 }
 
 const tasks = new Map<string, Task>();
+const taskProcesses = new Map<string, pty.IPty>();
 
 export const createTask = (command: string): Task => {
   const id = uuidv4();
@@ -64,9 +66,26 @@ export const getAllTasks = (): Task[] => {
   return Array.from(tasks.values());
 };
 
+export const setTaskProcess = (id: string, ptyProcess: pty.IPty): void => {
+  taskProcesses.set(id, ptyProcess);
+};
+
+export const getTaskProcess = (id: string): pty.IPty | undefined => {
+  return taskProcesses.get(id);
+};
+
+export const deleteTaskProcess = (id: string): void => {
+  taskProcesses.delete(id);
+};
+
 export const endTask = (id: string): boolean => {
   const task = tasks.get(id);
   if (task && (task.status === 'pending' || task.status === 'running')) {
+    const ptyProcess = getTaskProcess(id);
+    if (ptyProcess) {
+      ptyProcess.kill();
+      deleteTaskProcess(id);
+    }
     task.status = 'completed';
     task.updatedAt = new Date();
     return true;
