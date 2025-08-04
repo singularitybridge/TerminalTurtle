@@ -5,7 +5,6 @@ import { createApiServer } from './server/apiServer';
 import { logger, setupUnhandledExceptionLogging } from './utils/logging';
 import { AddressInfo } from 'net';
 import { getCredentials } from './utils/credentials';
-import { setupNgrok } from './utils/ngrok';
 import { cleanupInactiveClientDirectories } from './utils/clientDirectories';
 
 // Load environment variables from .env file if it exists
@@ -113,9 +112,6 @@ const startServer = async (): Promise<void> => {
     // Start the server
     const server = await start(availablePort);
 
-    // Setup ngrok after server starts
-    const ngrokConnection = await setupNgrok(availablePort);
-
     // Set up periodic cleanup of inactive client directories
     setInterval(() => {
       cleanupInactiveClientDirectories(INACTIVE_THRESHOLD)
@@ -137,11 +133,8 @@ const startServer = async (): Promise<void> => {
     });
 
     // Handle graceful shutdown
-    process.on('SIGINT', async () => {
+    process.on('SIGINT', () => {
       logger.info('Shutting down AI Agent Executor');
-      if (ngrokConnection) {
-        await ngrokConnection.disconnect();
-      }
       server.close(() => {
         process.exit(0);
       });

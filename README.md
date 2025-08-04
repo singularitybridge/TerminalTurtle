@@ -8,7 +8,6 @@ TerminalTurtle is an open-source developer tool that provides secure terminal au
 - **📁 File Management**: List, create, read, update, and delete files with ease
 - **🛠️ Code Execution**: Write and execute code through a clean API interface
 - **🌐 REST API**: Modern RESTful API for all operations
-- **🔗 Optional Public URL**: Configure ngrok integration through environment variables
 - **⚙️ Easy Configuration**: Simple environment variable setup
 - **🗂️ Recursive File Operations**: Comprehensive file system operations
 - **🐳 Docker Support**: Ready-to-use Docker and Docker Compose setup

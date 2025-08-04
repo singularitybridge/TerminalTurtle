@@ -3,6 +3,11 @@ FROM node:20-slim AS builder
 
 WORKDIR /app
 
+# Install build dependencies
+RUN apt-get update && \
+    apt-get install -y python3 build-essential git && \
+    rm -rf /var/lib/apt/lists/*
+
 # Copy package files for efficient caching
 COPY package*.json ./
 
@@ -20,19 +25,28 @@ FROM node:20-slim
 
 WORKDIR /app
 
-# Install curl and ngrok in a single layer for efficiency
+# Install system dependencies including Python for Aider
 RUN apt-get update && \
-    apt-get install -y curl wget unzip && \
-    wget -q -O /tmp/ngrok.zip https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-stable-linux-amd64.zip && \
-    unzip /tmp/ngrok.zip -d /usr/local/bin && \
-    rm /tmp/ngrok.zip && \
+    apt-get install -y curl wget unzip git python3 python3-pip python3-venv build-essential && \
     rm -rf /var/lib/apt/lists/*
+
+# Install Aider in a virtual environment
+RUN python3 -m venv /opt/aider-venv && \
+    /opt/aider-venv/bin/pip install --upgrade pip && \
+    /opt/aider-venv/bin/pip install aider-chat
+
+# Create aider wrapper script
+RUN echo '#!/bin/bash\n/opt/aider-venv/bin/aider "$@"' > /usr/local/bin/aider && \
+    chmod +x /usr/local/bin/aider
+
+# Install global Node.js development tools
+RUN npm install -g create-react-app create-next-app typescript nodemon pm2
 
 # Set default environment variables
 ENV NODE_ENV=production \
     PORT=8080 \
     WORKING_DIRECTORY=/data/workspace \
-    AGENT_NAME=terminal-turtle
+    AGENT_NAME=devatelier
 
 # Copy package files and install production dependencies only
 COPY package*.json ./
@@ -41,18 +55,11 @@ RUN npm ci --only=production && npm cache clean --force
 # Copy built files from builder stage
 COPY --from=builder /app/dist ./dist
 
-# Create and set permissions for workspace directory
-RUN mkdir -p /data/workspace && \
-    chown -R node:node /data/workspace
+# Create workspace directory
+RUN mkdir -p /data/workspace
 
-# Set ownership of /app to node user
-RUN chown -R node:node /app
-
-# Use non-root user for security
-USER node
-
-# Document the port being exposed
-EXPOSE 8080
+# Document the ports being exposed
+EXPOSE 8080 3000 4000 5173
 
 # Health check to ensure service is running properly
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
@@ -62,7 +69,6 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
 CMD ["node", "dist/main.js"]
 
 # Build-time metadata
-LABEL org.opencontainers.image.title="TerminalTurtle" \
-      org.opencontainers.image.description="A developer-friendly tool for secure terminal automation" \
-      org.opencontainers.image.source="https://github.com/singularitybridge/TerminalTurtle" \
-      org.opencontainers.image.licenses="MIT"
+LABEL org.opencontainers.image.title="DevAtelier" \
+      org.opencontainers.image.description="AI-powered development workspace system" \
+      org.opencontainers.image.source="https://github.com/yourusername/devatelier"

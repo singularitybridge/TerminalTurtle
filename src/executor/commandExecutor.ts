@@ -34,6 +34,7 @@ export const executeCommand = (
       FORCE_COLOR: '1',
       TERM: 'xterm-256color',
       GIT_TERMINAL_PROMPT: '1',
+      CI: 'true',
     },
   });
 
