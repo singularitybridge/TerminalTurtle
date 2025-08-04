@@ -28,10 +28,18 @@ coverage/
 .nyc_output/
 
 # Workspace and credentials
-workspace/*
-!workspace/.gitkeep
+workspace/
+working_directory/
 credentials/*
 !credentials/.gitkeep
+
+# Aider files
+.aider*
+*.aider.chat.history.md
+
+# Next.js build files
+.next/
+out/
 
 # Logs
 logs/
