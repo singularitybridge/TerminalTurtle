@@ -72,3 +72,6 @@ pids/
 
 # Docker volumes
 docker-volumes/
+
+# Instance directories
+instances/

@@ -1,0 +1,231 @@
+#!/bin/bash
+
+# turtle - Main TerminalTurtle management script
+# Usage: turtle <command> [options]
+
+set -e
+
+# Colors for output
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+YELLOW='\033[0;33m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
+BASE_DIR=$(dirname "$0")
+INSTANCES_DIR="$BASE_DIR/instances"
+
+# Ensure instances directory exists
+mkdir -p "$INSTANCES_DIR"
+
+COMMAND=${1:-help}
+shift || true
+
+case $COMMAND in
+    spawn)
+        # Spawn a new instance
+        if [ $# -lt 2 ]; then
+            echo -e "${RED}Error: Port number and template required${NC}"
+            echo "Usage: turtle spawn <port> <template> [name]"
+            echo ""
+            echo "Available templates:"
+            echo "  react    - React with TypeScript"
+            echo "  vite     - Vite with React & TypeScript"  
+            echo "  express  - Express.js with TypeScript"
+            exit 1
+        fi
+        "$BASE_DIR/spawn-turtle-v3.sh" "$@"
+        ;;
+        
+    list|ls)
+        # List all instances
+        echo -e "${BLUE}🐢 TerminalTurtle Instances${NC}"
+        echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        
+        if [ ! -d "$INSTANCES_DIR" ] || [ -z "$(ls -A "$INSTANCES_DIR" 2>/dev/null)" ]; then
+            echo -e "${YELLOW}No instances found.${NC}"
+            echo -e "\nUse 'turtle spawn <port>' to create a new instance."
+        else
+            printf "%-20s %-10s %-15s %-10s\n" "NAME" "PORT" "STATUS" "CREATED"
+            echo -e "${BLUE}───────────────────────────────────────────────${NC}"
+            
+            for instance_dir in "$INSTANCES_DIR"/*; do
+                if [ -d "$instance_dir" ] && [ -f "$instance_dir/instance-info.json" ]; then
+                    instance_name=$(basename "$instance_dir")
+                    
+                    # Parse instance info
+                    port=$(jq -r '.api_port' "$instance_dir/instance-info.json" 2>/dev/null || echo "N/A")
+                    created=$(jq -r '.created_at' "$instance_dir/instance-info.json" 2>/dev/null || echo "Unknown")
+                    created_date=$(echo "$created" | cut -d'T' -f1)
+                    
+                    # Check container status
+                    if (cd "$instance_dir" 2>/dev/null && docker-compose ps --services --filter "status=running" 2>/dev/null | grep -q .); then
+                        status="${GREEN}Running${NC}"
+                    else
+                        status="${RED}Stopped${NC}"
+                    fi
+                    
+                    printf "%-20s %-10s %-15b %-10s\n" "$instance_name" "$port" "$status" "$created_date"
+                fi
+            done
+        fi
+        echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        ;;
+        
+    info)
+        # Show detailed info about an instance
+        if [ $# -lt 1 ]; then
+            echo -e "${RED}Error: Instance name required${NC}"
+            echo "Usage: turtle info <instance-name>"
+            exit 1
+        fi
+        
+        INSTANCE_NAME=$1
+        INSTANCE_DIR="$INSTANCES_DIR/$INSTANCE_NAME"
+        
+        if [ ! -d "$INSTANCE_DIR" ]; then
+            echo -e "${RED}Error: Instance '$INSTANCE_NAME' not found${NC}"
+            exit 1
+        fi
+        
+        if [ ! -f "$INSTANCE_DIR/instance-info.json" ]; then
+            echo -e "${RED}Error: Instance info not found${NC}"
+            exit 1
+        fi
+        
+        echo -e "${BLUE}🐢 Instance: ${GREEN}$INSTANCE_NAME${NC}"
+        echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        
+        # Parse and display instance info
+        jq -r '
+            "API Port: \(.api_port)",
+            "Dev Server Port: \(.dev_server_port)",
+            "Node App Port: \(.node_app_port)",
+            "Vite Port: \(.vite_port)",
+            "API Key: \(.api_key)",
+            "Created: \(.created_at)",
+            "Workspace: \(.workspace)"
+        ' "$INSTANCE_DIR/instance-info.json"
+        
+        # Check container status
+        echo -e "\n${BLUE}Container Status:${NC}"
+        if cd "$INSTANCE_DIR" && docker-compose ps 2>/dev/null; then
+            :
+        else
+            echo -e "${YELLOW}Container information not available${NC}"
+        fi
+        
+        echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        ;;
+        
+    start|stop|restart|logs)
+        # Control an instance
+        if [ $# -lt 1 ]; then
+            echo -e "${RED}Error: Instance name required${NC}"
+            echo "Usage: turtle $COMMAND <instance-name>"
+            exit 1
+        fi
+        
+        INSTANCE_NAME=$1
+        INSTANCE_DIR="$INSTANCES_DIR/$INSTANCE_NAME"
+        
+        if [ ! -d "$INSTANCE_DIR" ]; then
+            echo -e "${RED}Error: Instance '$INSTANCE_NAME' not found${NC}"
+            exit 1
+        fi
+        
+        cd "$INSTANCE_DIR"
+        ./turtle-control.sh "$COMMAND"
+        ;;
+        
+    destroy)
+        # Destroy an instance
+        if [ $# -lt 1 ]; then
+            echo -e "${RED}Error: Instance name required${NC}"
+            echo "Usage: turtle destroy <instance-name>"
+            exit 1
+        fi
+        
+        INSTANCE_NAME=$1
+        INSTANCE_DIR="$INSTANCES_DIR/$INSTANCE_NAME"
+        
+        if [ ! -d "$INSTANCE_DIR" ]; then
+            echo -e "${RED}Error: Instance '$INSTANCE_NAME' not found${NC}"
+            exit 1
+        fi
+        
+        echo -e "${YELLOW}⚠️  WARNING: This will destroy the instance and all its data!${NC}"
+        echo -e "Instance: ${RED}$INSTANCE_NAME${NC}"
+        echo -n "Are you sure? (type 'yes' to confirm): "
+        read -r response
+        
+        if [ "$response" = "yes" ]; then
+            cd "$INSTANCE_DIR"
+            docker-compose down -v 2>/dev/null || true
+            cd "$BASE_DIR"
+            rm -rf "$INSTANCE_DIR"
+            echo -e "${GREEN}✓ Instance '$INSTANCE_NAME' destroyed${NC}"
+        else
+            echo -e "${BLUE}Cancelled${NC}"
+        fi
+        ;;
+        
+    clean)
+        # Clean up stopped instances
+        echo -e "${BLUE}Cleaning up stopped instances...${NC}"
+        
+        cleaned=0
+        for instance_dir in "$INSTANCES_DIR"/*; do
+            if [ -d "$instance_dir" ]; then
+                instance_name=$(basename "$instance_dir")
+                
+                # Check if container exists and is stopped
+                if cd "$instance_dir" 2>/dev/null; then
+                    if ! docker-compose ps --services --filter "status=running" 2>/dev/null | grep -q .; then
+                        echo -e "Removing stopped instance: ${YELLOW}$instance_name${NC}"
+                        docker-compose down -v 2>/dev/null || true
+                        cd "$BASE_DIR"
+                        rm -rf "$instance_dir"
+                        ((cleaned++))
+                    fi
+                fi
+            fi
+        done
+        
+        if [ $cleaned -eq 0 ]; then
+            echo -e "${GREEN}No stopped instances to clean${NC}"
+        else
+            echo -e "${GREEN}✓ Cleaned $cleaned instance(s)${NC}"
+        fi
+        ;;
+        
+    help|*)
+        echo -e "${BLUE}🐢 TerminalTurtle Management Tool${NC}"
+        echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo ""
+        echo "Usage: turtle <command> [options]"
+        echo ""
+        echo "Commands:"
+        echo "  spawn <port> <template> [name]    Spawn a new instance with template"
+        echo "  list, ls               List all instances"
+        echo "  info <name>            Show detailed info about an instance"
+        echo "  start <name>           Start an instance"
+        echo "  stop <name>            Stop an instance"
+        echo "  restart <name>         Restart an instance"
+        echo "  logs <name>            Show logs for an instance"
+        echo "  destroy <name>         Destroy an instance (removes all data)"
+        echo "  clean                  Clean up all stopped instances"
+        echo "  help                   Show this help message"
+        echo ""
+        echo "Examples:"
+        echo "  turtle spawn 3004 react           # Spawn React app on port 3004"
+        echo "  turtle spawn 3004 vite myapp      # Spawn Vite app with custom name"
+        echo "  turtle spawn 4000 express api     # Spawn Express API on port 4000"
+        echo "  turtle list                       # List all instances"
+        echo "  turtle info myproject             # Show instance details"
+        echo "  turtle logs myproject             # View instance logs"
+        echo "  turtle destroy myproject          # Remove instance"
+        echo ""
+        echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        ;;
+esac

@@ -6,6 +6,7 @@ import { logger, setupUnhandledExceptionLogging } from './utils/logging';
 import { AddressInfo } from 'net';
 import { getCredentials } from './utils/credentials';
 import { cleanupInactiveClientDirectories } from './utils/clientDirectories';
+import { autoStartDevServers } from './server/startup/autoStart';
 
 // Load environment variables from .env file if it exists
 const envPath = path.resolve(__dirname, '../.env');
@@ -121,6 +122,16 @@ const startServer = async (): Promise<void> => {
           });
         });
     }, CLEANUP_INTERVAL);
+
+    // Auto-start dev servers if enabled
+    if (process.env.AUTO_START_DEV_SERVER === 'true') {
+      logger.info('Auto-starting dev servers...');
+      autoStartDevServers(WORKING_DIRECTORY).catch(error => {
+        logger.error('Failed to auto-start dev servers', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      });
+    }
 
     // Handle server errors
     server.on('error', (error: NodeJS.ErrnoException) => {
