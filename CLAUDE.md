@@ -15,6 +15,8 @@ Terminal Turtle is a multi-instance development environment system that spawns i
 - Fixed Vite/React dev dependencies installation with NODE_ENV=development
 - Removed unused root docker-compose.yml (each turtle has its own)
 - Updated port mapping: Code Editor = API_PORT + 1433
+- Made AGENT_ID optional - not needed for one-turtle-per-container design
+- Refactored port naming: TURTLE_API_PORT (control API), APP_PORT (your app), EDITOR_PORT (VS Code)
 
 ## Development Commands
 
@@ -98,8 +100,8 @@ The architecture follows a modular design:
    - Supports recursive directory listing and file manipulation
 
 5. **Client Directory Management** (`src/utils/clientDirectories.ts`): Per-client isolation
-   - Each API key gets its own working directory
-   - Automatic cleanup of inactive directories after 24 hours
+   - Uses AGENT_NAME or 'default' as client identifier (AGENT_ID is optional)
+   - Each client can have its own working directory within the container
    - Path sanitization prevents directory traversal attacks
 
 ### Security Features
@@ -122,8 +124,9 @@ The architecture follows a modular design:
 ### Configuration
 
 The application uses environment variables (via .env file or system):
-- `PORT`: Server port (default: 3000)
+- `TURTLE_API_PORT`: Terminal Turtle API port (default: 3000)
+- `APP_PORT`: Application port for your project (Vite/React/Express)
+- `EDITOR_PORT`: VS Code web editor port (default: 4433)
 - `WORKING_DIRECTORY`: Base working directory (default: ./working_directory)
 - `API_KEY`: Required authentication key
-- `AGENT_ID`: Optional agent identifier
-- `AGENT_NAME`: Optional agent name
+- `AGENT_NAME`: Optional instance name (default: 'terminal-turtle')

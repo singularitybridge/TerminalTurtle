@@ -49,18 +49,16 @@ case $TEMPLATE in
 esac
 
 # Calculate other ports based on the main port
-API_PORT=$PORT
-DEV_SERVER_PORT=$((PORT + 100))
-NODE_APP_PORT=$((PORT + 1100))
-VITE_PORT=$((PORT + 2173))
-EDITOR_PORT=$((PORT + 200))
+TURTLE_API_PORT=$PORT
+APP_PORT=$((PORT + 100))
+EDITOR_PORT=$((PORT + 1433))
 
 echo -e "${BLUE}🐢 Spawning TerminalTurtle instance: ${GREEN}$INSTANCE_NAME${NC}"
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo -e "${BLUE}Template:${NC} $TEMPLATE"
-echo -e "${BLUE}API Port:${NC} $API_PORT"
-echo -e "${BLUE}Dev Server Port:${NC} $DEV_SERVER_PORT"
-echo -e "${BLUE}Node App Port:${NC} $NODE_APP_PORT"
+echo -e "${BLUE}Turtle API Port:${NC} $TURTLE_API_PORT"
+echo -e "${BLUE}App Port:${NC} $APP_PORT"
+echo -e "${BLUE}Editor Port:${NC} $EDITOR_PORT"
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 
 # Create instance directory
@@ -77,21 +75,16 @@ cat > "$INSTANCE_DIR/.env" << EOF
 # Generated on $(date)
 
 NODE_ENV=production
-PORT=$API_PORT
+TURTLE_API_PORT=$TURTLE_API_PORT
+APP_PORT=$APP_PORT
+EDITOR_PORT=$EDITOR_PORT
 WORKING_DIRECTORY=/data/workspace
 AGENT_NAME=$INSTANCE_NAME
 API_KEY=$API_KEY
-AGENT_ID=$(uuidgen || cat /proc/sys/kernel/random/uuid || echo "${INSTANCE_NAME}-$(date +%s)")
 
 # AI Agent Configuration (copy from main .env if exists)
 OPENAI_API_KEY=${OPENAI_API_KEY:-}
 ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
-
-# Port Configuration
-DEV_SERVER_PORT=$DEV_SERVER_PORT
-REACT_PORT=$DEV_SERVER_PORT
-NODE_APP_PORT=$NODE_APP_PORT
-VITE_PORT=$VITE_PORT
 
 # Auto-start Configuration
 AUTO_START_DEV_SERVER=true
@@ -141,7 +134,7 @@ echo "Code editor started (no authentication required)"
 # Wait for API to be ready
 echo "Waiting for API server to be ready..."
 for i in {1..30}; do
-    if curl -s -f "http://localhost:$PORT/health" > /dev/null 2>&1; then
+    if curl -s -f "http://localhost:$TURTLE_API_PORT/health" > /dev/null 2>&1; then
         echo "API server is ready!"
         break
     fi
@@ -161,15 +154,15 @@ if [ -z "$(ls -A /data/workspace 2>/dev/null)" ]; then
     case $PROJECT_TEMPLATE in
         react)
             echo "Starting React dev server..."
-            BROWSER=none HOST=0.0.0.0 PORT=$DEV_SERVER_PORT npm start &
+            BROWSER=none HOST=0.0.0.0 PORT=$APP_PORT npm start &
             ;;
         vite)
             echo "Starting Vite dev server..."
-            npm run dev -- --host 0.0.0.0 --port $DEV_SERVER_PORT &
+            npm run dev -- --host 0.0.0.0 --port $APP_PORT &
             ;;
         express)
             echo "Starting Express server..."
-            NODE_APP_PORT=$NODE_APP_PORT npm run dev &
+            PORT=$APP_PORT npm run dev &
             ;;
     esac
 else
@@ -179,13 +172,13 @@ else
     # Start based on template type
     case $PROJECT_TEMPLATE in
         react)
-            BROWSER=none HOST=0.0.0.0 PORT=$DEV_SERVER_PORT npm start &
+            BROWSER=none HOST=0.0.0.0 PORT=$APP_PORT npm start &
             ;;
         vite)
-            npm run dev -- --host 0.0.0.0 --port $DEV_SERVER_PORT &
+            npm run dev -- --host 0.0.0.0 --port $APP_PORT &
             ;;
         express)
-            NODE_APP_PORT=$NODE_APP_PORT npm run dev &
+            PORT=$APP_PORT npm run dev &
             ;;
     esac
 fi
@@ -204,20 +197,19 @@ services:
     image: terminal-turtle-$INSTANCE_NAME:latest
     container_name: $INSTANCE_NAME
     ports:
-      - "$API_PORT:$API_PORT"
-      - "$DEV_SERVER_PORT:$DEV_SERVER_PORT"
-      - "$NODE_APP_PORT:$NODE_APP_PORT"
-      - "$((API_PORT + 1433)):8443"
+      - "$TURTLE_API_PORT:$TURTLE_API_PORT"
+      - "$APP_PORT:$APP_PORT"
+      - "$EDITOR_PORT:8443"
     env_file: .env
     environment:
-      - PORT=$API_PORT
+      - TURTLE_API_PORT=$TURTLE_API_PORT
     volumes:
       - ./workspace:/data/workspace
       - ./startup.sh:/app/startup.sh:ro
       - ./init-project.sh:/app/init-project.sh:ro
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:$API_PORT/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:$TURTLE_API_PORT/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -296,10 +288,9 @@ cat > "$INSTANCE_DIR/instance-info.json" << EOF
   "name": "$INSTANCE_NAME",
   "template": "$TEMPLATE",
   "port": $PORT,
-  "api_port": $API_PORT,
-  "dev_server_port": $DEV_SERVER_PORT,
-  "node_app_port": $NODE_APP_PORT,
-  "vite_port": $VITE_PORT,
+  "turtle_api_port": $TURTLE_API_PORT,
+  "app_port": $APP_PORT,
+  "editor_port": $EDITOR_PORT,
   "api_key": "$API_KEY",
   "created_at": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
   "workspace": "$INSTANCE_DIR/workspace"
@@ -314,7 +305,7 @@ docker-compose up -d --build
 # Wait for the service to be ready
 echo -e "\n${BLUE}Waiting for services to be ready...${NC}"
 for i in {1..60}; do
-    if curl -s -f "http://localhost:$API_PORT/health" > /dev/null 2>&1; then
+    if curl -s -f "http://localhost:$TURTLE_API_PORT/health" > /dev/null 2>&1; then
         echo -e "${GREEN}✓ API service is ready!${NC}"
         break
     fi
@@ -330,21 +321,18 @@ echo -e ""
 echo -e "${BLUE}Instance Information:${NC}"
 echo -e "  Name: ${GREEN}$INSTANCE_NAME${NC}"
 echo -e "  Template: ${GREEN}$TEMPLATE${NC}"
-echo -e "  API Control: ${GREEN}http://localhost:$API_PORT${NC} ${BLUE}(for automation/scripting)${NC}"
+echo -e "  Turtle API: ${GREEN}http://localhost:$TURTLE_API_PORT${NC} ${BLUE}(for automation/scripting)${NC}"
 echo -e "  API Key: ${GREEN}$API_KEY${NC}"
-echo -e "  📝 Code Editor: ${GREEN}http://localhost:$((API_PORT + 1433))${NC} ${BLUE}(VS Code Web - Direct Access)${NC}"
-echo -e "  📝 Code Editor (Alt): ${GREEN}http://localhost:$API_PORT/editor?key=$API_KEY${NC} ${BLUE}(Through API Proxy)${NC}"
+echo -e "  📝 Code Editor: ${GREEN}http://localhost:$EDITOR_PORT${NC} ${BLUE}(VS Code Web)${NC}"
 
+echo -e "  🌐 Your App: ${GREEN}http://localhost:$APP_PORT${NC} ${BLUE}← Open this in your browser!${NC}"
+echo -e ""
 case $TEMPLATE in
     react|vite)
-        echo -e "  🌐 Your App URL: ${GREEN}http://localhost:$DEV_SERVER_PORT${NC} ${BLUE}← Open this in your browser!${NC}"
-        echo -e ""
         echo -e "${YELLOW}Note: The $TEMPLATE app is being initialized in the background.${NC}"
         echo -e "${YELLOW}It may take 1-2 minutes to be fully ready.${NC}"
         ;;
     express)
-        echo -e "  🌐 Your App URL: ${GREEN}http://localhost:$NODE_APP_PORT${NC} ${BLUE}← Open this in your browser!${NC}"
-        echo -e ""
         echo -e "${YELLOW}Note: The Express server is being initialized in the background.${NC}"
         ;;
 esac

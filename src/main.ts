@@ -29,11 +29,11 @@ const DEFAULT_WORKING_DIRECTORY = path.resolve(__dirname, '../working_directory'
 const CLEANUP_INTERVAL = 3600000; // 1 hour in milliseconds
 const INACTIVE_THRESHOLD = 86400000; // 24 hours in milliseconds
 
-const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : DEFAULT_PORT;
+const TURTLE_API_PORT = process.env.TURTLE_API_PORT ? parseInt(process.env.TURTLE_API_PORT, 10) : DEFAULT_PORT;
 const WORKING_DIRECTORY = process.env.WORKING_DIRECTORY || DEFAULT_WORKING_DIRECTORY;
 
-if (!process.env.PORT) {
-  logger.warn(`PORT not set in environment. Using default port: ${DEFAULT_PORT}`);
+if (!process.env.TURTLE_API_PORT) {
+  logger.warn(`TURTLE_API_PORT not set in environment. Using default port: ${DEFAULT_PORT}`);
 }
 
 if (!process.env.WORKING_DIRECTORY) {
@@ -104,10 +104,10 @@ const startServer = async (): Promise<void> => {
     // Create API server
     const { start } = await createApiServer(WORKING_DIRECTORY);
 
-    // Find an available port starting from the configured PORT
-    const availablePort = await findAvailablePort(PORT);
-    if (availablePort !== PORT) {
-      logger.info(`Port ${PORT} was in use, using port ${availablePort} instead`);
+    // Find an available port starting from the configured TURTLE_API_PORT
+    const availablePort = await findAvailablePort(TURTLE_API_PORT);
+    if (availablePort !== TURTLE_API_PORT) {
+      logger.info(`Port ${TURTLE_API_PORT} was in use, using port ${availablePort} instead`);
     }
 
     // Start the server

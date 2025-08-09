@@ -39,10 +39,11 @@ API_KEY=<generate-secure-key-here>
 PROJECT_TEMPLATE=vite
 
 # Port Configuration
-PORT=3000
-DEV_PORT=3100
-NODE_PORT=4100
-EDITOR_PORT=4433
+# IMPORTANT: Avoid ports 80, 443, 6001, 6002 (used by Coolify)
+# Recommended: Use ports 3000-9999
+TURTLE_API_PORT=3000  # Terminal Turtle control API
+APP_PORT=3100         # Your application (Vite/React/Express)
+EDITOR_PORT=4433      # VS Code web editor
 
 # Instance Name
 AGENT_NAME=my-project
@@ -57,10 +58,9 @@ ANTHROPIC_API_KEY=sk-ant-...
 In Coolify's networking settings:
 
 1. **Expose Ports:**
-   - `3000` → API Server
-   - `3100` → Development Server (Vite/React)
-   - `4433` → Code Editor (VS Code)
-   - `4100` → Node App (Express only)
+   - `3000` → Terminal Turtle API
+   - `3100` → Your Application
+   - `4433` → VS Code Editor
 
 2. **Domain Mapping (Optional):**
    ```
@@ -93,29 +93,29 @@ Or with custom domains:
 ### Vite Template
 ```env
 PROJECT_TEMPLATE=vite
-DEV_PORT=3100  # Vite dev server
+APP_PORT=3100  # Vite dev server
 ```
 - Creates a Vite + React + TypeScript app
 - Hot module replacement enabled
-- Access at port 3100
+- Access at APP_PORT
 
 ### React Template
 ```env
 PROJECT_TEMPLATE=react
-DEV_PORT=3100  # React dev server
+APP_PORT=3100  # React dev server
 ```
 - Creates a Create React App with TypeScript
 - Live reloading enabled
-- Access at port 3100
+- Access at APP_PORT
 
 ### Express Template
 ```env
 PROJECT_TEMPLATE=express
-NODE_PORT=4100  # Express server
+APP_PORT=3100  # Express server
 ```
 - Creates a basic Express.js server
 - Auto-restarts with nodemon
-- Access at port 4100
+- Access at APP_PORT
 
 ## Using the Deployed Turtle
 
@@ -195,9 +195,18 @@ docker run --rm -v [app-name]_workspace:/data -v $(pwd):/backup alpine tar czf /
 
 ## Troubleshooting
 
+### Port Already Allocated Error
+- **Common Issue**: "Bind for 0.0.0.0:XX failed: port is already allocated"
+- **Solution**: Avoid these commonly used ports:
+  - Port 80, 443 (HTTP/HTTPS - used by Coolify proxy)
+  - Port 6001, 6002 (Coolify internal services)
+  - Port 8000 (Common development port)
+- **Recommended Ports**: 3000-3999, 4000-4999, 5000-5999, 7000-9999
+- In Coolify, you can let it auto-assign ports by leaving them blank
+
 ### Container Won't Start
 - Check API_KEY is set
-- Verify PORT environment variables
+- Verify PORT environment variables are not conflicting
 - Check Coolify logs for errors
 
 ### Code Editor Not Accessible
@@ -257,7 +266,7 @@ command: ["/bin/bash", "/app/deploy/custom-startup.sh"]
 To deploy multiple turtles on same Coolify:
 1. Create separate applications
 2. Use different port ranges (3000, 3200, 3400, etc.)
-3. Set unique AGENT_NAME for each
+3. Set unique AGENT_NAME for each (optional, for identification)
 
 ## Support
 

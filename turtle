@@ -54,7 +54,7 @@ case $COMMAND in
                     instance_name=$(basename "$instance_dir")
                     
                     # Parse instance info
-                    port=$(jq -r '.api_port' "$instance_dir/instance-info.json" 2>/dev/null || echo "N/A")
+                    port=$(jq -r '.turtle_api_port // .api_port' "$instance_dir/instance-info.json" 2>/dev/null || echo "N/A")
                     created=$(jq -r '.created_at' "$instance_dir/instance-info.json" 2>/dev/null || echo "Unknown")
                     created_date=$(echo "$created" | cut -d'T' -f1)
                     
@@ -98,27 +98,18 @@ case $COMMAND in
         
         # Parse and display instance info
         TEMPLATE=$(jq -r '.template' "$INSTANCE_DIR/instance-info.json")
-        API_PORT=$(jq -r '.api_port' "$INSTANCE_DIR/instance-info.json")
-        EDITOR_PORT=$((API_PORT + 1433))
+        TURTLE_API_PORT=$(jq -r '.turtle_api_port' "$INSTANCE_DIR/instance-info.json")
+        APP_PORT=$(jq -r '.app_port' "$INSTANCE_DIR/instance-info.json")
+        EDITOR_PORT=$(jq -r '.editor_port' "$INSTANCE_DIR/instance-info.json")
         
-        # Show app URL first based on template
-        case $TEMPLATE in
-            react|vite)
-                DEV_PORT=$(jq -r '.dev_server_port' "$INSTANCE_DIR/instance-info.json")
-                echo -e "🌐 ${GREEN}Your App URL: http://localhost:$DEV_PORT${NC} ${BLUE}← Open this in your browser!${NC}"
-                ;;
-            express)
-                NODE_PORT=$(jq -r '.node_app_port' "$INSTANCE_DIR/instance-info.json")
-                echo -e "🌐 ${GREEN}Your App URL: http://localhost:$NODE_PORT${NC} ${BLUE}← Open this in your browser!${NC}"
-                ;;
-        esac
-        
+        # Show URLs
+        echo -e "🌐 ${GREEN}Your App: http://localhost:$APP_PORT${NC} ${BLUE}← Open this in your browser!${NC}"
         echo -e "📝 ${GREEN}Code Editor: http://localhost:$EDITOR_PORT${NC} ${BLUE}(VS Code Web)${NC}"
         
         echo ""
         jq -r '
             "Template: \(.template)",
-            "API Control: http://localhost:\(.api_port) (for automation/scripting)",
+            "Turtle API: http://localhost:\(.turtle_api_port) (for automation/scripting)",
             "API Key: \(.api_key)",
             "Created: \(.created_at)",
             "Workspace: \(.workspace)"
