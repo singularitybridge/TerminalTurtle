@@ -4,16 +4,13 @@ services:
   terminal-turtle:
     build: 
       context: .
-      dockerfile: Dockerfile
+      dockerfile: ./Dockerfile
     image: terminal-turtle:latest
-    # Don't expose ports explicitly - let Coolify handle it
-    # ports section removed to avoid conflicts
+    ports:
+      - "${TURTLE_API_PORT:-3000}:${TURTLE_API_PORT:-3000}"
+      - "${APP_PORT:-3100}:${APP_PORT:-3100}"
+      - "${EDITOR_PORT:-4433}:8443"
     environment:
-      # Coolify Domain Routing - Maps domains to container ports
-      # These environment variables tell Coolify which domain goes to which internal port
-      - SERVICE_FQDN_APP_${APP_PORT:-3100}=${APP_DOMAIN}
-      - SERVICE_FQDN_API_${TURTLE_API_PORT:-3000}=${API_DOMAIN}
-      - SERVICE_FQDN_EDITOR_8443=${EDITOR_DOMAIN}
       
       # Core Configuration
       - NODE_ENV=production
@@ -65,17 +62,7 @@ services:
               npm create vite@latest . -- --template react-ts --yes
               NODE_ENV=development npm install --include=dev
               # Configure Vite to accept external hosts
-              echo "import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-
-export default defineConfig({
-  plugins: [react()],
-  server: {
-    host: '0.0.0.0',
-    port: ${APP_PORT},
-    strictPort: true
-  }
-})" > vite.config.ts
+              echo "import { defineConfig } from 'vite'; import react from '@vitejs/plugin-react'; export default defineConfig({ plugins: [react()], server: { host: '0.0.0.0', port: ${APP_PORT:-3100}, strictPort: true } })" > vite.config.ts
               npm run dev &
               ;;
             react)
