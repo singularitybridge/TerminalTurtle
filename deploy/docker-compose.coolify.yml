@@ -96,6 +96,20 @@ services:
           cd /data/workspace
           case ${PROJECT_TEMPLATE} in
             vite)
+              # Ensure vite.config.ts exists with correct port
+              if [ ! -f vite.config.ts ]; then
+                echo "import { defineConfig } from '\''vite'\''" > vite.config.ts
+                echo "import react from '\''@vitejs/plugin-react'\''" >> vite.config.ts
+                echo "" >> vite.config.ts
+                echo "export default defineConfig({" >> vite.config.ts
+                echo "  plugins: [react()]," >> vite.config.ts
+                echo "  server: {" >> vite.config.ts
+                echo "    host: '\''0.0.0.0'\''," >> vite.config.ts
+                echo "    port: ${APP_PORT:-3100}," >> vite.config.ts
+                echo "    strictPort: true" >> vite.config.ts
+                echo "  }" >> vite.config.ts
+                echo "})" >> vite.config.ts
+              fi
               npm run dev &
               ;;
             react)
