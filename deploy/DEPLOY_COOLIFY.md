@@ -55,19 +55,63 @@ ANTHROPIC_API_KEY=sk-ant-...
 
 ### 4. Configure Networking
 
-In Coolify's networking settings:
+**IMPORTANT**: Coolify needs to know which ports to route to which domains.
 
-1. **Expose Ports:**
-   - `3000` → Terminal Turtle API
-   - `3100` → Your Application
-   - `4433` → VS Code Editor
+#### Method 1: Multiple Domains in One Field
+In Coolify's **Domains** field, add all domains separated by commas with port mappings:
+```
+https://yourdomain.com:3100,https://api.yourdomain.com:3000,https://editor.yourdomain.com:4433
+```
 
-2. **Domain Mapping (Optional):**
-   ```
-   api.yourdomain.com → 3000
-   app.yourdomain.com → 3100
-   editor.yourdomain.com → 4433
-   ```
+**Example for your setup:**
+```
+https://turtle-vite.singularitybridge.net:3100,https://api.turtle-vite.singularitybridge.net:3000,https://editor.turtle-vite.singularitybridge.net:4433
+```
+
+#### Method 2: Configure Main Port
+In Coolify's **Settings**:
+1. Set the main **Port** to `3100` (your app)
+2. The main domain will route to your app
+3. For API and Editor access, you'll need to use the methods below
+
+#### Method 3: Using Wildcard Domain (Recommended)
+
+**Step 1: DNS Setup**
+Add wildcard A record in your DNS provider:
+```
+Type: A
+Host: *.turtle-vite  (or just * if turtle-vite is the root)
+Value: <Your Server IP>
+Proxy: Disabled (DNS Only if using Cloudflare)
+```
+
+**Step 2: Coolify Server Configuration**
+1. Go to Coolify → **Servers** → Select your server
+2. In **General** tab, find **Wildcard Domain**
+3. Enter: `https://turtle-vite.singularitybridge.net`
+
+**Step 3: Application Configuration**
+
+**Option A: In Coolify Domains Field**
+Enter all domains (note editor uses port 8443, not 4433):
+```
+https://turtle-vite.singularitybridge.net,https://api.turtle-vite.singularitybridge.net:3000,https://editor.turtle-vite.singularitybridge.net:8443
+```
+
+**Option B: Using Environment Variables (Recommended)**
+Add these to Coolify's environment variables:
+```
+APP_DOMAIN=https://turtle-vite.singularitybridge.net
+API_DOMAIN=https://api.turtle-vite.singularitybridge.net
+EDITOR_DOMAIN=https://editor.turtle-vite.singularitybridge.net
+```
+
+The docker-compose.coolify.yml will automatically map these domains to the correct ports.
+
+**Note**: 
+- Port numbers in domains tell Coolify's proxy where to route
+- Visitors won't see port numbers in their browser
+- Direct port access (like `https://domain:3100`) won't work - use Coolify's proxy
 
 ### 5. Deploy
 
@@ -194,6 +238,45 @@ docker run --rm -v [app-name]_workspace:/data -v $(pwd):/backup alpine tar czf /
    ```
 
 ## Troubleshooting
+
+### SSL Certificate Error (TRAEFIK DEFAULT CERT)
+**Problem**: Subdomains show "Your connection is not private" with TRAEFIK DEFAULT CERT.
+
+**Solution**:
+1. **Verify DNS**: Ensure all subdomains have A records pointing to your server:
+   ```bash
+   nslookup api.turtle-vite.singularitybridge.net
+   nslookup editor.turtle-vite.singularitybridge.net
+   ```
+   
+2. **Fix Port Mappings**: 
+   - Editor must use port `8443` (internal), not `4433`
+   - In Domains field: `https://editor.turtle-vite.singularitybridge.net:8443`
+
+3. **Revalidate**: 
+   - Go to Coolify → **Servers** → **General** → **Revalidate Server**
+   - Redeploy the application
+   - Wait 2-3 minutes for Let's Encrypt to issue certificates
+
+4. **Check Cloudflare** (if using):
+   - Ensure proxy is **OFF** (DNS Only/Gray Cloud)
+   - SSL/TLS mode should be "Full" or "Full (Strict)"
+
+### Main Domain Shows API Instead of App
+**Problem**: Your domain shows `{"status":"healthy"}` or API responses instead of your app.
+
+**Solution**: 
+1. In Coolify, go to your application's **Settings**
+2. Under **Networking**, change the **Port** from `3000` to `3100`
+3. Or add the label `coolify.port=3100` in docker-compose
+4. Redeploy the application
+
+### Can't Access App on HTTPS with Port
+**Problem**: `https://domain.com:3100` gives SSL error.
+
+**Solution**: Don't use port numbers with HTTPS. Coolify's proxy handles SSL. Either:
+- Use the main domain (after configuring it to port 3100)
+- Set up subdomains for each service
 
 ### Port Already Allocated Error
 - **Common Issue**: "Bind for 0.0.0.0:XX failed: port is already allocated"

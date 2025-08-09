@@ -6,11 +6,15 @@ services:
       context: .
       dockerfile: Dockerfile
     image: terminal-turtle:latest
-    ports:
-      - "${TURTLE_API_PORT:-3000}:${TURTLE_API_PORT:-3000}"  # Terminal Turtle API
-      - "${APP_PORT:-3100}:${APP_PORT:-3100}"                # Your Application
-      - "${EDITOR_PORT:-4433}:8443"                          # VS Code Editor
+    # Don't expose ports explicitly - let Coolify handle it
+    # ports section removed to avoid conflicts
     environment:
+      # Coolify Domain Routing - Maps domains to container ports
+      # These environment variables tell Coolify which domain goes to which internal port
+      - SERVICE_FQDN_APP_${APP_PORT:-3100}=${APP_DOMAIN}
+      - SERVICE_FQDN_API_${TURTLE_API_PORT:-3000}=${API_DOMAIN}
+      - SERVICE_FQDN_EDITOR_8443=${EDITOR_DOMAIN}
+      
       # Core Configuration
       - NODE_ENV=production
       - TURTLE_API_PORT=${TURTLE_API_PORT:-3000}
@@ -33,6 +37,9 @@ services:
       - workspace:/data/workspace
       - ./templates:/app/templates:ro
     restart: unless-stopped
+    labels:
+      # Tell Coolify to route main domain to APP_PORT (your application)
+      - "coolify.port=${APP_PORT:-3100}"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:${TURTLE_API_PORT:-3000}/health"]
       interval: 30s
@@ -57,7 +64,19 @@ services:
               cd /data/workspace
               npm create vite@latest . -- --template react-ts --yes
               NODE_ENV=development npm install --include=dev
-              npm run dev -- --host 0.0.0.0 --port ${APP_PORT} &
+              # Configure Vite to accept external hosts
+              echo "import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    host: '0.0.0.0',
+    port: ${APP_PORT},
+    strictPort: true
+  }
+})" > vite.config.ts
+              npm run dev &
               ;;
             react)
               cd /data/workspace
@@ -80,7 +99,7 @@ services:
           cd /data/workspace
           case ${PROJECT_TEMPLATE} in
             vite)
-              npm run dev -- --host 0.0.0.0 --port ${APP_PORT} &
+              npm run dev &
               ;;
             react)
               BROWSER=none HOST=0.0.0.0 PORT=${APP_PORT} npm start &
