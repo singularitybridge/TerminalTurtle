@@ -3,13 +3,13 @@ version: '3.8'
 services:
   terminal-turtle:
     build: 
-      context: .
-      dockerfile: ./Dockerfile
+      context: ../
+      dockerfile: Dockerfile
     image: terminal-turtle:latest
     ports:
       - "${TURTLE_API_PORT:-3000}:${TURTLE_API_PORT:-3000}"
       - "${APP_PORT:-3100}:${APP_PORT:-3100}"
-      - "${EDITOR_PORT:-4433}:8443"
+      - "${EDITOR_PORT:-4433}:8080"
     environment:
       
       # Core Configuration
@@ -45,9 +45,9 @@ services:
       start_period: 60s
     command: |
       bash -c '
-        # Start code-server in background
+        # Start code-server in background on port 8443
         echo "Starting code-server..."
-        code-server /data/workspace --bind-addr 0.0.0.0:8443 --auth none &
+        PASSWORD=none code-server /data/workspace --bind-addr 0.0.0.0:8443 --auth none &
         
         # Start the main application
         node dist/main.js &
@@ -62,7 +62,17 @@ services:
               npm create vite@latest . -- --template react-ts --yes
               NODE_ENV=development npm install --include=dev
               # Configure Vite to accept external hosts
-              echo "import { defineConfig } from 'vite'; import react from '@vitejs/plugin-react'; export default defineConfig({ plugins: [react()], server: { host: '0.0.0.0', port: ${APP_PORT:-3100}, strictPort: true } })" > vite.config.ts
+              echo "import { defineConfig } from '\''vite'\''" > vite.config.ts
+              echo "import react from '\''@vitejs/plugin-react'\''" >> vite.config.ts
+              echo "" >> vite.config.ts
+              echo "export default defineConfig({" >> vite.config.ts
+              echo "  plugins: [react()]," >> vite.config.ts
+              echo "  server: {" >> vite.config.ts
+              echo "    host: '\''0.0.0.0'\''," >> vite.config.ts
+              echo "    port: ${APP_PORT:-3100}," >> vite.config.ts
+              echo "    strictPort: true" >> vite.config.ts
+              echo "  }" >> vite.config.ts
+              echo "})" >> vite.config.ts
               npm run dev &
               ;;
             react)
