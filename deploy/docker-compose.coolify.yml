@@ -1,0 +1,100 @@
+version: '3.8'
+
+services:
+  terminal-turtle:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    image: terminal-turtle:latest
+    ports:
+      - "${PORT:-3000}:${PORT:-3000}"                    # API Server
+      - "${DEV_PORT:-3100}:${DEV_PORT:-3100}"           # Dev Server
+      - "${EDITOR_PORT:-4433}:8443"                      # Code Editor
+    environment:
+      # Core Configuration
+      - NODE_ENV=production
+      - PORT=${PORT:-3000}
+      - WORKING_DIRECTORY=/data/workspace
+      - AGENT_NAME=${AGENT_NAME:-terminal-turtle}
+      - API_KEY=${API_KEY}
+      
+      # Template Configuration (vite, react, or express)
+      - PROJECT_TEMPLATE=${PROJECT_TEMPLATE:-vite}
+      - DEV_SERVER_PORT=${DEV_PORT:-3100}
+      - NODE_APP_PORT=${NODE_PORT:-4100}
+      
+      # Optional AI Integration
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      
+      # Auto-start development server
+      - AUTO_START_DEV_SERVER=${AUTO_START_DEV_SERVER:-true}
+    volumes:
+      - workspace:/data/workspace
+      - ./templates:/app/templates:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${PORT:-3000}/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    command: |
+      bash -c '
+        # Start code-server in background
+        echo "Starting code-server..."
+        code-server /data/workspace --bind-addr 0.0.0.0:8443 --auth none &
+        
+        # Start the main application
+        node dist/main.js &
+        API_PID=$!
+        
+        # Initialize project if workspace is empty
+        if [ -z "$(ls -A /data/workspace 2>/dev/null)" ]; then
+          echo "Initializing ${PROJECT_TEMPLATE} project..."
+          case ${PROJECT_TEMPLATE} in
+            vite)
+              cd /data/workspace
+              npm create vite@latest . -- --template react-ts --yes
+              NODE_ENV=development npm install --include=dev
+              npm run dev -- --host 0.0.0.0 --port ${DEV_SERVER_PORT} &
+              ;;
+            react)
+              cd /data/workspace
+              npx create-react-app . --template typescript --use-npm
+              NODE_ENV=development npm install --include=dev
+              BROWSER=none HOST=0.0.0.0 PORT=${DEV_SERVER_PORT} npm start &
+              ;;
+            express)
+              cd /data/workspace
+              npm init -y
+              npm install express cors dotenv
+              npm install -D @types/node @types/express typescript nodemon
+              # Create basic server
+              echo "const express = require(\"express\"); const app = express(); app.get(\"/\", (req, res) => res.json({message: \"Hello from Terminal Turtle\"})); app.listen(${NODE_APP_PORT}, () => console.log(\"Server running on port ${NODE_APP_PORT}\"));" > index.js
+              node index.js &
+              ;;
+          esac
+        else
+          echo "Workspace exists, starting existing project..."
+          cd /data/workspace
+          case ${PROJECT_TEMPLATE} in
+            vite)
+              npm run dev -- --host 0.0.0.0 --port ${DEV_SERVER_PORT} &
+              ;;
+            react)
+              BROWSER=none HOST=0.0.0.0 PORT=${DEV_SERVER_PORT} npm start &
+              ;;
+            express)
+              node index.js &
+              ;;
+          esac
+        fi
+        
+        # Keep container running
+        wait $API_PID
+      '
+
+volumes:
+  workspace:
+    driver: local
