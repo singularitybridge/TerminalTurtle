@@ -75,3 +75,11 @@ docker-volumes/
 
 # Instance directories
 instances/
+
+# Remote turtle configuration
+.turtle-remote/
+
+# Security - never commit these
+cookies.txt
+*.cookie
+*.cookies

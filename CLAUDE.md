@@ -2,6 +2,20 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Project Overview
+
+Terminal Turtle is a multi-instance development environment system that spawns isolated Docker containers with integrated VS Code web editors. Each "turtle" is a complete development environment with its own container, ports, and workspace.
+
+## Recent Updates (2025-08-09)
+
+- Renamed project from DevAtelier to Terminal Turtle
+- Fixed Docker caching issues with unique image names per turtle
+- Added code editor URL to `turtle info` command output
+- Implemented automatic code-server startup with no authentication
+- Fixed Vite/React dev dependencies installation with NODE_ENV=development
+- Removed unused root docker-compose.yml (each turtle has its own)
+- Updated port mapping: Code Editor = API_PORT + 1433
+
 ## Development Commands
 
 ### Build and Run
@@ -34,9 +48,34 @@ npm test path/to/file.test.ts
 npm run lint
 ```
 
+## Turtle System Commands
+
+### Main Commands
+```bash
+# Spawn a new turtle
+./turtle spawn <port> <template> <name>  # template: vite, react, or express
+
+# Manage turtles
+./turtle list                # List all turtles
+./turtle info <name>          # Show detailed info with all URLs
+./turtle start <name>         # Start a turtle
+./turtle stop <name>          # Stop a turtle
+./turtle restart <name>       # Restart a turtle
+./turtle logs <name>          # View logs
+./turtle kill <name>          # Destroy a turtle
+./turtle clean                # Clean up stopped turtles
+```
+
 ## Architecture Overview
 
-TerminalTurtle is a secure terminal automation tool built with TypeScript and Express. The architecture follows a modular design:
+TerminalTurtle is a multi-instance development environment system. Each turtle is an isolated Docker container with its own:
+- Docker image: `terminal-turtle-<name>`
+- Docker Compose configuration in `instances/<name>/docker-compose.yml`
+- Workspace volume at `instances/<name>/workspace/`
+- Environment configuration in `instances/<name>/.env`
+- Startup scripts for initialization
+
+The architecture follows a modular design:
 
 ### Core Components
 

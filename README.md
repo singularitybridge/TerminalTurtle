@@ -1,83 +1,330 @@
-# 🐢 TerminalTurtle
+# 🐢 Terminal Turtle
 
-TerminalTurtle is an open-source developer tool that provides secure terminal automation and remote command execution capabilities. It's designed to be easy to use, secure, and flexible for modern development workflows.
+A powerful multi-instance terminal automation and development environment system that spawns isolated Docker containers with integrated VS Code web editors, development servers, and API endpoints.
 
-## 🚀 Features
-
-- **🔒 Secure Command Execution**: Execute shell commands with output capture and proper security controls
-- **📁 File Management**: List, create, read, update, and delete files with ease
-- **🛠️ Code Execution**: Write and execute code through a clean API interface
-- **🌐 REST API**: Modern RESTful API for all operations
-- **⚙️ Easy Configuration**: Simple environment variable setup
-- **🗂️ Recursive File Operations**: Comprehensive file system operations
-- **🐳 Docker Support**: Ready-to-use Docker and Docker Compose setup
-- **🖥️ Per-Client Working Directory**: Maintain separate working directories for each client
-
-## 🏁 Quick Start
-
-[... existing content ...]
-
-## 🔧 Configuration
-
-[... existing content ...]
-
-## 📡 API Usage
-
-### Command Execution
+## 🚀 Quick Start
 
 ```bash
-curl -X POST http://localhost:8080/execute \
+# Spawn a new turtle with Vite + React
+./turtle spawn 3000 vite my-app
+
+# Spawn another turtle with Express.js
+./turtle spawn 3100 express api-server
+
+# List all turtles
+./turtle list
+
+# Get info about a specific turtle
+./turtle info my-app
+```
+
+## 📋 Features
+
+- **🚀 Multi-Instance Support**: Run multiple isolated development environments simultaneously
+- **📝 VS Code Web Editor**: Each turtle includes a browser-based VS Code editor
+- **📦 Template Support**: Pre-configured templates for Vite, React, and Express projects
+- **🔌 Automatic Port Management**: Smart port allocation prevents conflicts
+- **🔒 Secure API Integration**: REST API with bearer token authentication
+- **🐳 Container Isolation**: Each turtle runs in its own Docker container
+- **♻️ Hot Reload**: Development servers with automatic reloading
+- **🛠️ Terminal Automation**: Execute commands and manage files remotely
+
+## 🏗️ Architecture
+
+Each turtle is a completely isolated environment with:
+- Its own Docker image (`terminal-turtle-<name>`)
+- Dedicated container with unique ports
+- Isolated workspace volume
+- Integrated code-server (VS Code in browser)
+- Development server (Vite/React/Express)
+- REST API for remote control
+
+### Port Mapping Pattern
+- **API Server**: Base port (e.g., 3000)
+- **Dev Server**: Base port + 100 (e.g., 3100)
+- **Node App**: Base port + 1100 (e.g., 4100) - Express template only
+- **Code Editor**: Base port + 1433 (e.g., 4433)
+
+## 📦 Installation
+
+### Prerequisites
+- Docker Desktop installed and running
+- Bash shell (macOS/Linux)
+- Node.js and npm (for building)
+
+### Setup
+```bash
+# Clone the repository
+git clone <repository-url>
+cd TerminalTurtle
+
+# Install dependencies
+npm install
+
+# Build TypeScript
+npm run build
+
+# Generate API credentials (optional - auto-generated on spawn)
+npm run generate-credentials
+```
+
+## 🎮 Commands
+
+### Spawn a New Turtle
+```bash
+./turtle spawn <port> <template> [name]
+
+# Examples:
+./turtle spawn 3000 vite my-vite-app
+./turtle spawn 3100 react my-react-app
+./turtle spawn 3200 express my-api
+```
+
+**Templates:**
+- `vite` - Vite + React + TypeScript
+- `react` - Create React App + TypeScript
+- `express` - Express.js + TypeScript
+
+### Manage Turtles
+```bash
+# List all turtles
+./turtle list
+
+# Get detailed info (includes all URLs)
+./turtle info <name>
+
+# Start/stop/restart
+./turtle start <name>
+./turtle stop <name>
+./turtle restart <name>
+
+# View logs
+./turtle logs <name>
+
+# Destroy a turtle
+./turtle kill <name>
+
+# Clean up stopped turtles
+./turtle clean
+```
+
+### Access Services
+
+After spawning a turtle, you'll get URLs for:
+1. **📝 Code Editor**: `http://localhost:<editor-port>` - VS Code in your browser
+2. **🌐 Dev Server**: `http://localhost:<dev-port>` - Your running application
+3. **🔌 API**: `http://localhost:<api-port>` - REST API for automation
+
+## 🛠️ API Endpoints
+
+Each turtle exposes a REST API for automation:
+
+### Authentication
+All API endpoints require Bearer token authentication:
+```bash
+-H "Authorization: Bearer <api-key>"
+```
+
+### Execute Commands
+```bash
+curl -X POST http://localhost:3000/execute \
+  -H "Authorization: Bearer <api-key>" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer your_api_key" \
-  -d '{"command": "echo Hello World"}'
+  -d '{"command": "npm install axios"}'
 ```
 
 ### File Operations
-
 ```bash
 # List files
-curl -X POST http://localhost:8080/file-operation \
+curl -X POST http://localhost:3000/file-operation \
+  -H "Authorization: Bearer <api-key>" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer your_api_key" \
-  -d '{"operation": "list", "path": "./", "recursive": true}'
+  -d '{"operation": "list", "path": "/", "recursive": true}'
 
 # Read file
-curl -X POST http://localhost:8080/file-operation \
+curl -X POST http://localhost:3000/file-operation \
+  -H "Authorization: Bearer <api-key>" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer your_api_key" \
-  -d '{"operation": "read", "path": "./README.md"}'
+  -d '{"operation": "read", "path": "/src/App.tsx"}'
 
 # Write file
-curl -X POST http://localhost:8080/file-operation \
+curl -X POST http://localhost:3000/file-operation \
+  -H "Authorization: Bearer <api-key>" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer your_api_key" \
-  -d '{"operation": "write", "path": "./test.txt", "content": "Hello!"}'
+  -d '{"operation": "write", "path": "/src/test.js", "content": "console.log(\"test\");"}'
 ```
 
-### Change Working Directory
-
+### Task Management
 ```bash
-curl -X POST http://localhost:8080/change-directory \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer your_api_key" \
-  -d '{"newPath": "path/to/new/directory"}'
+# List all tasks
+curl -X GET http://localhost:3000/tasks \
+  -H "Authorization: Bearer <api-key>"
+
+# Get task status
+curl -X GET http://localhost:3000/tasks/<task-id> \
+  -H "Authorization: Bearer <api-key>"
+
+# End a task
+curl -X POST http://localhost:3000/tasks/<task-id>/end \
+  -H "Authorization: Bearer <api-key>"
 ```
 
-## 🖥️ Per-Client Working Directory Management
+## 🐚 Advanced Usage
 
-TerminalTurtle now supports per-client working directory management. This feature allows each client to have its own working directory, which persists across multiple command executions.
+### Connect with Aider (AI Pair Programming)
+```bash
+./turtle aider <name>
+```
 
-Key points:
-- Each client (identified by their API key) has its own working directory.
-- The working directory can be changed using the `/change-directory` endpoint.
-- All file operations and command executions for a client will use their specific working directory.
-- If a client hasn't set a working directory, the base working directory is used.
+### Remote Turtles
+```bash
+# Add a remote turtle
+./turtle remote add prod https://api.example.com your-api-key
 
-Usage:
-1. Change the working directory using the `/change-directory` endpoint.
-2. Execute commands or perform file operations as usual - they will now use the new working directory.
-3. The working directory persists across multiple requests for the same client.
+# Execute commands remotely
+./turtle remote exec prod "npm run build"
 
-Security note: Clients can only set working directories within the base working directory specified in the server configuration.
+# View remote logs
+./turtle remote logs prod
+```
 
-[... rest of the existing content ...]
+### Direct Container Access
+```bash
+# SSH into container
+docker exec -it <turtle-name> bash
+
+# Run commands directly
+./turtle exec <name> npm test
+```
+
+## 📁 Project Structure
+
+```
+TerminalTurtle/
+├── turtle                  # Main CLI script
+├── spawn-turtle-v3.sh      # Turtle spawning logic
+├── Dockerfile              # Container image definition
+├── src/                    # TypeScript source code
+│   ├── server/            # Express API server
+│   │   ├── apiServer.ts   # Main server setup
+│   │   ├── middleware/    # Auth middleware
+│   │   └── handlers/      # Request handlers
+│   ├── executor/          # Command execution
+│   │   ├── commandExecutor.ts
+│   │   ├── taskManager.ts
+│   │   └── fileManager.ts
+│   └── utils/             # Utilities
+│       ├── logging.ts
+│       ├── credentials.ts
+│       └── clientDirectories.ts
+├── templates/              # Project templates
+│   ├── init-vite.sh
+│   ├── init-react.sh
+│   ├── init-express.sh
+│   └── startup-with-editor.sh
+└── instances/              # Running turtle instances
+    └── <turtle-name>/      # Each turtle's directory
+        ├── docker-compose.yml
+        ├── instance-info.json
+        ├── .env
+        ├── workspace/      # Project files
+        ├── startup.sh      # Container startup
+        └── init-project.sh # Template initialization
+```
+
+## 🔧 Configuration
+
+### Environment Variables
+Each turtle gets its own `.env` file with:
+```env
+# API Configuration
+API_KEY=<auto-generated>
+PORT=<api-port>
+WORKING_DIRECTORY=/data/workspace
+
+# Template Configuration
+PROJECT_TEMPLATE=<vite|react|express>
+DEV_SERVER_PORT=<dev-port>
+NODE_APP_PORT=<node-port>
+
+# Optional: AI Integration
+OPENAI_API_KEY=your-openai-key
+ANTHROPIC_API_KEY=your-anthropic-key
+```
+
+## 🐛 Troubleshooting
+
+### Port Already in Use
+Each turtle needs unique ports. If you get a port conflict error, choose different base ports that are at least 100 apart.
+
+### Docker Build Cache Issues
+The system uses `--build` flag to ensure fresh builds. If you still have issues:
+```bash
+# Clear Docker cache
+docker system prune --all
+
+# Rebuild specific turtle
+cd instances/<turtle-name>
+docker-compose build --no-cache
+docker-compose up -d
+```
+
+### Code Editor Not Loading
+1. Ensure port (base + 1433) is not blocked by firewall
+2. Check Docker Desktop is running
+3. Verify container started correctly: `./turtle logs <name>`
+4. Check code-server status: `docker exec <name> ps aux | grep code-server`
+
+### Dev Server Not Starting
+For Vite/React projects, initialization takes 1-2 minutes. Monitor progress:
+```bash
+./turtle logs <name>
+# or
+cd instances/<name> && docker-compose logs -f
+```
+
+## 🔒 Security
+
+- Each turtle runs in an isolated Docker container
+- API endpoints require Bearer token authentication
+- Working directories are sandboxed
+- Path traversal protection enabled
+- Command execution timeout (5 minutes default)
+- Per-client directory isolation
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit issues and pull requests.
+
+### Development Setup
+```bash
+# Install dev dependencies
+npm install
+
+# Run TypeScript in watch mode
+npm run dev
+
+# Run tests
+npm test
+
+# Lint code
+npm run lint
+```
+
+## 📄 License
+
+MIT License - See LICENSE file for details
+
+## 🙏 Acknowledgments
+
+- Built with Node.js, TypeScript, and Express
+- Code editor powered by [code-server](https://github.com/coder/code-server)
+- Terminal emulation via [node-pty](https://github.com/microsoft/node-pty)
+- Container orchestration with Docker
+
+## 📚 Documentation
+
+For more detailed documentation, see:
+- [API Documentation](docs/api.md)
+- [Architecture Overview](docs/architecture.md)
+- [Contributing Guide](CONTRIBUTING.md)
