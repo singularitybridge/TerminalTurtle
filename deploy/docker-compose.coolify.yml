@@ -3,7 +3,7 @@ version: '3.8'
 services:
   terminal-turtle:
     build: 
-      context: ../
+      context: ..
       dockerfile: Dockerfile
     image: terminal-turtle:latest
     ports:
