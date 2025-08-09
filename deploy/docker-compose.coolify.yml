@@ -3,8 +3,8 @@ version: '3.8'
 services:
   terminal-turtle:
     build: 
-      context: ..
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./Dockerfile
     image: terminal-turtle:latest
     ports:
       - "${TURTLE_API_PORT:-3000}:${TURTLE_API_PORT:-3000}"
