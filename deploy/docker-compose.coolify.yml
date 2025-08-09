@@ -18,7 +18,7 @@ services:
       - EDITOR_PORT=${EDITOR_PORT:-4433}
       - WORKING_DIRECTORY=/data/workspace
       - AGENT_NAME=${AGENT_NAME:-terminal-turtle}
-      - API_KEY=${API_KEY}
+      - TURTLE_API_KEY=${TURTLE_API_KEY}
       
       # Template Configuration (vite, react, or express)
       - PROJECT_TEMPLATE=${PROJECT_TEMPLATE:-vite}

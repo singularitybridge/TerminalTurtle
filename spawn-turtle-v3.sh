@@ -66,7 +66,7 @@ INSTANCE_DIR="$BASE_DIR/instances/$INSTANCE_NAME"
 mkdir -p "$INSTANCE_DIR"
 
 # Generate unique API key for this instance
-API_KEY=$(openssl rand -hex 32)
+TURTLE_API_KEY=$(openssl rand -hex 32)
 
 # Create instance-specific .env file
 cat > "$INSTANCE_DIR/.env" << EOF
@@ -80,7 +80,7 @@ APP_PORT=$APP_PORT
 EDITOR_PORT=$EDITOR_PORT
 WORKING_DIRECTORY=/data/workspace
 AGENT_NAME=$INSTANCE_NAME
-API_KEY=$API_KEY
+TURTLE_API_KEY=$TURTLE_API_KEY
 
 # AI Agent Configuration (copy from main .env if exists)
 OPENAI_API_KEY=${OPENAI_API_KEY:-}
@@ -291,7 +291,7 @@ cat > "$INSTANCE_DIR/instance-info.json" << EOF
   "turtle_api_port": $TURTLE_API_PORT,
   "app_port": $APP_PORT,
   "editor_port": $EDITOR_PORT,
-  "api_key": "$API_KEY",
+  "api_key": "$TURTLE_API_KEY",
   "created_at": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
   "workspace": "$INSTANCE_DIR/workspace"
 }
@@ -322,7 +322,7 @@ echo -e "${BLUE}Instance Information:${NC}"
 echo -e "  Name: ${GREEN}$INSTANCE_NAME${NC}"
 echo -e "  Template: ${GREEN}$TEMPLATE${NC}"
 echo -e "  Turtle API: ${GREEN}http://localhost:$TURTLE_API_PORT${NC} ${BLUE}(for automation/scripting)${NC}"
-echo -e "  API Key: ${GREEN}$API_KEY${NC}"
+echo -e "  API Key: ${GREEN}$TURTLE_API_KEY${NC}"
 echo -e "  📝 Code Editor: ${GREEN}http://localhost:$EDITOR_PORT${NC} ${BLUE}(VS Code Web)${NC}"
 
 echo -e "  🌐 Your App: ${GREEN}http://localhost:$APP_PORT${NC} ${BLUE}← Open this in your browser!${NC}"

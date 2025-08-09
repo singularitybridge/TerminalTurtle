@@ -24,11 +24,11 @@ const getCredentials = (): AgentCredentials => {
   // For one-turtle-per-container, AGENT_ID is optional
   // If not provided, use container/instance name as ID
   const id = process.env.AGENT_ID || process.env.AGENT_NAME || 'default';
-  const apiKey = process.env.API_KEY;
+  const apiKey = process.env.TURTLE_API_KEY;
   const name = process.env.AGENT_NAME || 'terminal-turtle';
 
   if (!apiKey) {
-    throw new Error('API_KEY must be provided in environment variables.');
+    throw new Error('TURTLE_API_KEY must be provided in environment variables.');
   }
 
   return { id, apiKey, name };

@@ -33,7 +33,7 @@ In Coolify's environment variables section, add:
 
 ```env
 # REQUIRED - Generate secure key
-API_KEY=<generate-secure-key-here>
+TURTLE_API_KEY=<generate-secure-key-here>
 
 # Template Selection (choose one: vite, react, express)
 PROJECT_TEMPLATE=vite
@@ -135,13 +135,13 @@ APP_PORT=3100  # Express server
 ```bash
 # Execute commands
 curl -X POST https://api.yourdomain.com/execute \
-  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Authorization: Bearer YOUR_TURTLE_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"command": "npm install axios"}'
 
 # File operations
 curl -X POST https://api.yourdomain.com/file-operation \
-  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Authorization: Bearer YOUR_TURTLE_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"operation": "list", "path": "/"}'
 ```
@@ -152,7 +152,7 @@ After deployment, add to your local turtle remote:
 
 ```bash
 # Add remote turtle
-./turtle remote add production https://api.yourdomain.com YOUR_API_KEY
+./turtle remote add production https://api.yourdomain.com YOUR_TURTLE_API_KEY
 
 # Execute commands remotely
 ./turtle remote exec production "npm install"
@@ -205,7 +205,7 @@ docker run --rm -v [app-name]_workspace:/data -v $(pwd):/backup alpine tar czf /
 - In Coolify, you can let it auto-assign ports by leaving them blank
 
 ### Container Won't Start
-- Check API_KEY is set
+- Check TURTLE_API_KEY is set
 - Verify PORT environment variables are not conflicting
 - Check Coolify logs for errors
 
@@ -226,7 +226,7 @@ docker run --rm -v [app-name]_workspace:/data -v $(pwd):/backup alpine tar czf /
 
 ## Security Recommendations
 
-1. **Use Strong API Key:**
+1. **Use Strong TURTLE_API_KEY:**
    ```bash
    openssl rand -hex 32
    ```

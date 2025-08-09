@@ -128,5 +128,5 @@ The application uses environment variables (via .env file or system):
 - `APP_PORT`: Application port for your project (Vite/React/Express)
 - `EDITOR_PORT`: VS Code web editor port (default: 4433)
 - `WORKING_DIRECTORY`: Base working directory (default: ./working_directory)
-- `API_KEY`: Required authentication key
+- `TURTLE_API_KEY`: Required authentication key for API access
 - `AGENT_NAME`: Optional instance name (default: 'terminal-turtle')
