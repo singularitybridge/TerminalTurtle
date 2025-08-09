@@ -29,7 +29,7 @@ const app = express();
 const PORT = process.env.PORT || 4000;
 
 app.get('/', (req, res) => {
-  res.json({ message: 'Hello from DevAtelier!' });
+  res.json({ message: 'Hello from Terminal Turtle!' });
 });
 
 app.listen(PORT, () => {

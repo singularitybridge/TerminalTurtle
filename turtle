@@ -39,12 +39,12 @@ case $COMMAND in
         
     list|ls)
         # List all instances
-        echo -e "${BLUE}🐢 TerminalTurtle Instances${NC}"
+        echo -e "${BLUE}🐢 TerminalTurtle Turtles${NC}"
         echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
         
         if [ ! -d "$INSTANCES_DIR" ] || [ -z "$(ls -A "$INSTANCES_DIR" 2>/dev/null)" ]; then
-            echo -e "${YELLOW}No instances found.${NC}"
-            echo -e "\nUse 'turtle spawn <port>' to create a new instance."
+            echo -e "${YELLOW}No turtles found.${NC}"
+            echo -e "\nUse 'turtle spawn <port>' to create a new turtle."
         else
             printf "%-20s %-10s %-15s %-10s\n" "NAME" "PORT" "STATUS" "CREATED"
             echo -e "${BLUE}───────────────────────────────────────────────${NC}"
@@ -73,10 +73,10 @@ case $COMMAND in
         ;;
         
     info)
-        # Show detailed info about an instance
+        # Show detailed info about a turtle
         if [ $# -lt 1 ]; then
-            echo -e "${RED}Error: Instance name required${NC}"
-            echo "Usage: turtle info <instance-name>"
+            echo -e "${RED}Error: Turtle name required${NC}"
+            echo "Usage: turtle info <turtle-name>"
             exit 1
         fi
         
@@ -84,24 +84,41 @@ case $COMMAND in
         INSTANCE_DIR="$INSTANCES_DIR/$INSTANCE_NAME"
         
         if [ ! -d "$INSTANCE_DIR" ]; then
-            echo -e "${RED}Error: Instance '$INSTANCE_NAME' not found${NC}"
+            echo -e "${RED}Error: Turtle '$INSTANCE_NAME' not found${NC}"
             exit 1
         fi
         
         if [ ! -f "$INSTANCE_DIR/instance-info.json" ]; then
-            echo -e "${RED}Error: Instance info not found${NC}"
+            echo -e "${RED}Error: Turtle info not found${NC}"
             exit 1
         fi
         
-        echo -e "${BLUE}🐢 Instance: ${GREEN}$INSTANCE_NAME${NC}"
+        echo -e "${BLUE}🐢 Turtle: ${GREEN}$INSTANCE_NAME${NC}"
         echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
         
         # Parse and display instance info
+        TEMPLATE=$(jq -r '.template' "$INSTANCE_DIR/instance-info.json")
+        API_PORT=$(jq -r '.api_port' "$INSTANCE_DIR/instance-info.json")
+        EDITOR_PORT=$((API_PORT + 1433))
+        
+        # Show app URL first based on template
+        case $TEMPLATE in
+            react|vite)
+                DEV_PORT=$(jq -r '.dev_server_port' "$INSTANCE_DIR/instance-info.json")
+                echo -e "🌐 ${GREEN}Your App URL: http://localhost:$DEV_PORT${NC} ${BLUE}← Open this in your browser!${NC}"
+                ;;
+            express)
+                NODE_PORT=$(jq -r '.node_app_port' "$INSTANCE_DIR/instance-info.json")
+                echo -e "🌐 ${GREEN}Your App URL: http://localhost:$NODE_PORT${NC} ${BLUE}← Open this in your browser!${NC}"
+                ;;
+        esac
+        
+        echo -e "📝 ${GREEN}Code Editor: http://localhost:$EDITOR_PORT${NC} ${BLUE}(VS Code Web)${NC}"
+        
+        echo ""
         jq -r '
-            "API Port: \(.api_port)",
-            "Dev Server Port: \(.dev_server_port)",
-            "Node App Port: \(.node_app_port)",
-            "Vite Port: \(.vite_port)",
+            "Template: \(.template)",
+            "API Control: http://localhost:\(.api_port) (for automation/scripting)",
             "API Key: \(.api_key)",
             "Created: \(.created_at)",
             "Workspace: \(.workspace)"
@@ -119,10 +136,10 @@ case $COMMAND in
         ;;
         
     start|stop|restart|logs)
-        # Control an instance
+        # Control a turtle
         if [ $# -lt 1 ]; then
-            echo -e "${RED}Error: Instance name required${NC}"
-            echo "Usage: turtle $COMMAND <instance-name>"
+            echo -e "${RED}Error: Turtle name required${NC}"
+            echo "Usage: turtle $COMMAND <turtle-name>"
             exit 1
         fi
         
@@ -130,7 +147,7 @@ case $COMMAND in
         INSTANCE_DIR="$INSTANCES_DIR/$INSTANCE_NAME"
         
         if [ ! -d "$INSTANCE_DIR" ]; then
-            echo -e "${RED}Error: Instance '$INSTANCE_NAME' not found${NC}"
+            echo -e "${RED}Error: Turtle '$INSTANCE_NAME' not found${NC}"
             exit 1
         fi
         
@@ -138,11 +155,61 @@ case $COMMAND in
         ./turtle-control.sh "$COMMAND"
         ;;
         
-    destroy)
-        # Destroy an instance
+    destroy|kill)
+        # Destroy a turtle
+        if [ $# -lt 1 ]; then
+            echo -e "${RED}Error: Turtle name required${NC}"
+            echo "Usage: turtle destroy <turtle-name> [-f|--force]"
+            echo "       turtle kill <turtle-name>  (same as destroy --force)"
+            exit 1
+        fi
+        
+        INSTANCE_NAME=$1
+        INSTANCE_DIR="$INSTANCES_DIR/$INSTANCE_NAME"
+        FORCE=false
+        
+        # Check for force flag or if command is 'kill'
+        if [ "$COMMAND" = "kill" ] || [ "${2:-}" = "-f" ] || [ "${2:-}" = "--force" ]; then
+            FORCE=true
+        fi
+        
+        if [ ! -d "$INSTANCE_DIR" ]; then
+            echo -e "${RED}Error: Turtle '$INSTANCE_NAME' not found${NC}"
+            exit 1
+        fi
+        
+        if [ "$FORCE" = "false" ]; then
+            echo -e "${YELLOW}⚠️  WARNING: This will destroy the turtle and all its data!${NC}"
+            echo -e "Turtle: ${RED}$INSTANCE_NAME${NC}"
+            echo -e "${YELLOW}Type 'yes' to confirm, or use 'turtle kill $INSTANCE_NAME' to skip confirmation${NC}"
+            echo -n "Are you sure? (yes/no): "
+            read -r response
+            
+            if [ "$response" != "yes" ]; then
+                echo -e "${BLUE}Cancelled${NC}"
+                exit 0
+            fi
+        fi
+        
+        # Stop and remove the turtle
+        echo -e "${BLUE}Destroying turtle '$INSTANCE_NAME'...${NC}"
+        if cd "$INSTANCE_DIR" 2>/dev/null; then
+            docker-compose down -v 2>/dev/null || true
+        fi
+        cd "$BASE_DIR"
+        rm -rf "$INSTANCE_DIR"
+        echo -e "${GREEN}✓ Turtle '$INSTANCE_NAME' destroyed${NC}"
+        ;;
+        
+    aider)
+        # Connect to aider AI agent in an instance
         if [ $# -lt 1 ]; then
             echo -e "${RED}Error: Instance name required${NC}"
-            echo "Usage: turtle destroy <instance-name>"
+            echo "Usage: turtle aider <instance-name> [message]"
+            echo ""
+            echo "Examples:"
+            echo "  turtle aider demo-app                    # Start interactive aider session"
+            echo "  turtle aider demo-app \"Add a navbar\"     # Send a single request"
             exit 1
         fi
         
@@ -154,25 +221,33 @@ case $COMMAND in
             exit 1
         fi
         
-        echo -e "${YELLOW}⚠️  WARNING: This will destroy the instance and all its data!${NC}"
-        echo -e "Instance: ${RED}$INSTANCE_NAME${NC}"
-        echo -n "Are you sure? (type 'yes' to confirm): "
-        read -r response
+        # Check if container is running
+        if ! cd "$INSTANCE_DIR" && docker-compose ps --services --filter "status=running" 2>/dev/null | grep -q .; then
+            echo -e "${RED}Error: Instance '$INSTANCE_NAME' is not running${NC}"
+            echo -e "Start it with: ${GREEN}turtle start $INSTANCE_NAME${NC}"
+            exit 1
+        fi
         
-        if [ "$response" = "yes" ]; then
-            cd "$INSTANCE_DIR"
-            docker-compose down -v 2>/dev/null || true
-            cd "$BASE_DIR"
-            rm -rf "$INSTANCE_DIR"
-            echo -e "${GREEN}✓ Instance '$INSTANCE_NAME' destroyed${NC}"
+        shift # Remove instance name from args
+        
+        if [ $# -eq 0 ]; then
+            # Interactive mode
+            echo -e "${BLUE}🤖 Connecting to Aider AI agent...${NC}"
+            echo -e "${YELLOW}Note: You'll need to configure your API key in the container${NC}"
+            echo -e "${YELLOW}Run: export ANTHROPIC_API_KEY=your-key-here${NC}"
+            echo ""
+            docker exec -it "$INSTANCE_NAME" bash -c "cd /data/workspace && aider"
         else
-            echo -e "${BLUE}Cancelled${NC}"
+            # Single message mode
+            MESSAGE="$*"
+            echo -e "${BLUE}🤖 Sending request to Aider...${NC}"
+            docker exec -it "$INSTANCE_NAME" bash -c "cd /data/workspace && echo '$MESSAGE' | aider --yes --no-pretty"
         fi
         ;;
         
     clean)
         # Clean up stopped instances
-        echo -e "${BLUE}Cleaning up stopped instances...${NC}"
+        echo -e "${BLUE}Cleaning up stopped turtles...${NC}"
         
         cleaned=0
         for instance_dir in "$INSTANCES_DIR"/*; do
@@ -182,7 +257,7 @@ case $COMMAND in
                 # Check if container exists and is stopped
                 if cd "$instance_dir" 2>/dev/null; then
                     if ! docker-compose ps --services --filter "status=running" 2>/dev/null | grep -q .; then
-                        echo -e "Removing stopped instance: ${YELLOW}$instance_name${NC}"
+                        echo -e "Removing stopped turtle: ${YELLOW}$instance_name${NC}"
                         docker-compose down -v 2>/dev/null || true
                         cd "$BASE_DIR"
                         rm -rf "$instance_dir"
@@ -193,10 +268,15 @@ case $COMMAND in
         done
         
         if [ $cleaned -eq 0 ]; then
-            echo -e "${GREEN}No stopped instances to clean${NC}"
+            echo -e "${GREEN}No stopped turtles to clean${NC}"
         else
-            echo -e "${GREEN}✓ Cleaned $cleaned instance(s)${NC}"
+            echo -e "${GREEN}✓ Cleaned $cleaned turtle(s)${NC}"
         fi
+        ;;
+        
+    remote)
+        # Manage remote instances deployed on Coolify/cloud
+        "$BASE_DIR/turtle-remote.sh" "$@"
         ;;
         
     help|*)
@@ -205,26 +285,41 @@ case $COMMAND in
         echo ""
         echo "Usage: turtle <command> [options]"
         echo ""
-        echo "Commands:"
-        echo "  spawn <port> <template> [name]    Spawn a new instance with template"
-        echo "  list, ls               List all instances"
-        echo "  info <name>            Show detailed info about an instance"
-        echo "  start <name>           Start an instance"
-        echo "  stop <name>            Stop an instance"
-        echo "  restart <name>         Restart an instance"
-        echo "  logs <name>            Show logs for an instance"
-        echo "  destroy <name>         Destroy an instance (removes all data)"
-        echo "  clean                  Clean up all stopped instances"
+        echo -e "${GREEN}Local Turtle Commands:${NC}"
+        echo "  spawn <port> <template> [name]    Spawn a new turtle with template"
+        echo "  list, ls               List all turtles"
+        echo "  info <name>            Show detailed info about a turtle"
+        echo "  start <name>           Start a turtle"
+        echo "  stop <name>            Stop a turtle"
+        echo "  restart <name>         Restart a turtle"
+        echo "  logs <name>            Show logs for a turtle"
+        echo "  aider <name> [message] 🤖 Connect to AI coding agent (Aider)"
+        echo "  destroy <name> [-f]    Destroy a turtle (asks confirmation)"
+        echo "  kill <name>            Destroy a turtle immediately (no confirmation)"
+        echo "  clean                  Clean up all stopped turtles"
+        echo ""
+        echo -e "${GREEN}Remote Turtle Commands:${NC}"
+        echo "  remote add <name> <url> <key>     Add remote turtle"
+        echo "  remote list            List remote turtles"
+        echo "  remote exec <name> <cmd>          Execute command remotely"
+        echo "  remote logs <name>     View remote logs"
+        echo "  remote info <name>     Show remote turtle info"
+        echo "  remote help            More remote commands"
+        echo ""
+        echo -e "${GREEN}General:${NC}"
         echo "  help                   Show this help message"
         echo ""
         echo "Examples:"
-        echo "  turtle spawn 3004 react           # Spawn React app on port 3004"
-        echo "  turtle spawn 3004 vite myapp      # Spawn Vite app with custom name"
-        echo "  turtle spawn 4000 express api     # Spawn Express API on port 4000"
-        echo "  turtle list                       # List all instances"
-        echo "  turtle info myproject             # Show instance details"
-        echo "  turtle logs myproject             # View instance logs"
-        echo "  turtle destroy myproject          # Remove instance"
+        echo -e "${YELLOW}Local:${NC}"
+        echo "  turtle spawn 3004 react           # Spawn React turtle locally"
+        echo "  turtle list                       # List local turtles"
+        echo "  turtle logs myproject             # View local logs"
+        echo "  turtle kill myproject             # Destroy turtle immediately"
+        echo ""
+        echo -e "${YELLOW}Remote:${NC}"
+        echo "  turtle remote add prod https://tt.coolify.app sk_abc..."
+        echo "  turtle remote exec prod 'npm install'"
+        echo "  turtle remote logs prod"
         echo ""
         echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
         ;;

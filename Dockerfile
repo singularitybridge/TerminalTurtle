@@ -42,11 +42,20 @@ RUN echo '#!/bin/bash\n/opt/aider-venv/bin/aider "$@"' > /usr/local/bin/aider &&
 # Install global Node.js development tools
 RUN npm install -g create-react-app create-next-app typescript nodemon pm2
 
+# Install code-server for web-based VS Code
+RUN curl -fsSL https://code-server.dev/install.sh | sh && \
+    mkdir -p /root/.config/code-server && \
+    # Create default config
+    echo 'bind-addr: 0.0.0.0:8443\n\
+auth: password\n\
+password: changeme\n\
+cert: false' > /root/.config/code-server/config.yaml
+
 # Set default environment variables
 ENV NODE_ENV=production \
     PORT=8080 \
     WORKING_DIRECTORY=/data/workspace \
-    AGENT_NAME=devatelier
+    AGENT_NAME=terminal-turtle
 
 # Copy package files and install production dependencies only
 COPY package*.json ./
@@ -69,6 +78,6 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
 CMD ["node", "dist/main.js"]
 
 # Build-time metadata
-LABEL org.opencontainers.image.title="DevAtelier" \
-      org.opencontainers.image.description="AI-powered development workspace system" \
-      org.opencontainers.image.source="https://github.com/yourusername/devatelier"
+LABEL org.opencontainers.image.title="Terminal Turtle" \
+      org.opencontainers.image.description="Secure terminal automation tool" \
+      org.opencontainers.image.source="https://github.com/yourusername/terminal-turtle"
