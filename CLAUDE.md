@@ -14,9 +14,13 @@ Terminal Turtle is a multi-instance development environment system that spawns i
 - Implemented automatic code-server startup with no authentication
 - Fixed Vite/React dev dependencies installation with NODE_ENV=development
 - Removed unused root docker-compose.yml (each turtle has its own)
-- Updated port mapping: Code Editor = API_PORT + 1433
 - Made AGENT_ID optional - not needed for one-turtle-per-container design
-- Refactored port naming: TURTLE_API_PORT (control API), APP_PORT (your app), EDITOR_PORT (VS Code)
+- **Refactored all environment variables for clarity:**
+  - `PORT` → `TURTLE_API_PORT` (Terminal Turtle control API)
+  - `DEV_PORT` & `NODE_PORT` → `APP_PORT` (unified for any app type)
+  - `API_KEY` → `TURTLE_API_KEY` (authentication key)
+  - `EDITOR_PORT` remains (already clear)
+- Removed all backward compatibility (no legacy support needed)
 
 ## Development Commands
 
@@ -77,6 +81,12 @@ TerminalTurtle is a multi-instance development environment system. Each turtle i
 - Environment configuration in `instances/<name>/.env`
 - Startup scripts for initialization
 
+### Port Architecture
+Each turtle uses three distinct ports with clear naming:
+- **TURTLE_API_PORT**: Terminal Turtle control API (execute commands, file operations)
+- **APP_PORT**: Your application (Vite dev server, React dev server, or Express app)
+- **EDITOR_PORT**: VS Code web editor (code-server on port 8443 internally)
+
 The architecture follows a modular design:
 
 ### Core Components
@@ -130,3 +140,15 @@ The application uses environment variables (via .env file or system):
 - `WORKING_DIRECTORY`: Base working directory (default: ./working_directory)
 - `TURTLE_API_KEY`: Required authentication key for API access
 - `AGENT_NAME`: Optional instance name (default: 'terminal-turtle')
+- `PROJECT_TEMPLATE`: Template type (vite, react, or express)
+- `AUTO_START_DEV_SERVER`: Auto-start dev server on launch (default: true)
+
+## Deployment
+
+### Coolify/Hetzner Deployment
+The project includes deployment files in `deploy/`:
+- `docker-compose.coolify.yml`: Coolify-compatible compose file
+- `.env.coolify.example`: Environment template for Coolify
+- `DEPLOY_COOLIFY.md`: Detailed deployment instructions
+
+Important: Avoid ports 80, 443, 6001, 6002 (used by Coolify). Use ports 3000-9999.

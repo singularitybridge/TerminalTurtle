@@ -23,8 +23,8 @@ A powerful multi-instance terminal automation and development environment system
 - **🚀 Multi-Instance Support**: Run multiple isolated development environments simultaneously
 - **📝 VS Code Web Editor**: Each turtle includes a browser-based VS Code editor
 - **📦 Template Support**: Pre-configured templates for Vite, React, and Express projects
-- **🔌 Automatic Port Management**: Smart port allocation prevents conflicts
-- **🔒 Secure API Integration**: REST API with bearer token authentication
+- **🔌 Clear Port Management**: Descriptive port names (TURTLE_API_PORT, APP_PORT, EDITOR_PORT)
+- **🔒 Secure API Integration**: REST API with TURTLE_API_KEY authentication
 - **🐳 Container Isolation**: Each turtle runs in its own Docker container
 - **♻️ Hot Reload**: Development servers with automatic reloading
 - **🛠️ Terminal Automation**: Execute commands and manage files remotely
@@ -40,10 +40,9 @@ Each turtle is a completely isolated environment with:
 - REST API for remote control
 
 ### Port Mapping Pattern
-- **API Server**: Base port (e.g., 3000)
-- **Dev Server**: Base port + 100 (e.g., 3100)
-- **Node App**: Base port + 1100 (e.g., 4100) - Express template only
-- **Code Editor**: Base port + 1433 (e.g., 4433)
+- **Turtle API**: Base port (e.g., 3000) - Terminal Turtle control API
+- **Application**: Base port + 100 (e.g., 3100) - Your app (Vite/React/Express)
+- **Code Editor**: Base port + 1433 (e.g., 4433) - VS Code web interface
 
 ## 📦 Installation
 
@@ -68,7 +67,7 @@ npm run build
 npm run generate-credentials
 ```
 
-## 🎮 Commands
+## 🎮 Turtle CLI Commands
 
 ### Spawn a New Turtle
 ```bash
@@ -128,7 +127,7 @@ All API endpoints require Bearer token authentication:
 ### Execute Commands
 ```bash
 curl -X POST http://localhost:3000/execute \
-  -H "Authorization: Bearer <api-key>" \
+  -H "Authorization: Bearer <your-turtle-api-key>" \
   -H "Content-Type: application/json" \
   -d '{"command": "npm install axios"}'
 ```
@@ -137,19 +136,19 @@ curl -X POST http://localhost:3000/execute \
 ```bash
 # List files
 curl -X POST http://localhost:3000/file-operation \
-  -H "Authorization: Bearer <api-key>" \
+  -H "Authorization: Bearer <your-turtle-api-key>" \
   -H "Content-Type: application/json" \
   -d '{"operation": "list", "path": "/", "recursive": true}'
 
 # Read file
 curl -X POST http://localhost:3000/file-operation \
-  -H "Authorization: Bearer <api-key>" \
+  -H "Authorization: Bearer <your-turtle-api-key>" \
   -H "Content-Type: application/json" \
   -d '{"operation": "read", "path": "/src/App.tsx"}'
 
 # Write file
 curl -X POST http://localhost:3000/file-operation \
-  -H "Authorization: Bearer <api-key>" \
+  -H "Authorization: Bearer <your-turtle-api-key>" \
   -H "Content-Type: application/json" \
   -d '{"operation": "write", "path": "/src/test.js", "content": "console.log(\"test\");"}'
 ```
@@ -158,15 +157,15 @@ curl -X POST http://localhost:3000/file-operation \
 ```bash
 # List all tasks
 curl -X GET http://localhost:3000/tasks \
-  -H "Authorization: Bearer <api-key>"
+  -H "Authorization: Bearer <your-turtle-api-key>"
 
 # Get task status
 curl -X GET http://localhost:3000/tasks/<task-id> \
-  -H "Authorization: Bearer <api-key>"
+  -H "Authorization: Bearer <your-turtle-api-key>"
 
 # End a task
 curl -X POST http://localhost:3000/tasks/<task-id>/end \
-  -H "Authorization: Bearer <api-key>"
+  -H "Authorization: Bearer <your-turtle-api-key>"
 ```
 
 ## 🐚 Advanced Usage
