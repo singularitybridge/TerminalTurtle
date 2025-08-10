@@ -47,7 +47,7 @@ services:
       bash -c '
         # Start code-server in background on port 8443
         echo "Starting code-server..."
-        PASSWORD=none code-server /data/workspace --bind-addr 0.0.0.0:8443 --auth none &
+        PASSWORD=none code-server /data/workspace --bind-addr 0.0.0.0:8080 --auth none &
         
         # Start the main application
         node dist/main.js &
@@ -70,7 +70,9 @@ services:
               echo "  server: {" >> vite.config.ts
               echo "    host: '\''0.0.0.0'\''," >> vite.config.ts
               echo "    port: ${APP_PORT:-3100}," >> vite.config.ts
-              echo "    strictPort: true" >> vite.config.ts
+              echo "    strictPort: true," >> vite.config.ts
+              ALLOWED_HOST=$(echo "${COOLIFY_FQDN%%,*}" | sed "s|https://||" | sed "s|:3100||")
+              echo "    allowedHosts: ['\''${ALLOWED_HOST}'\'']" >> vite.config.ts
               echo "  }" >> vite.config.ts
               echo "})" >> vite.config.ts
               npm run dev &
@@ -106,7 +108,9 @@ services:
                 echo "  server: {" >> vite.config.ts
                 echo "    host: '\''0.0.0.0'\''," >> vite.config.ts
                 echo "    port: ${APP_PORT:-3100}," >> vite.config.ts
-                echo "    strictPort: true" >> vite.config.ts
+                echo "    strictPort: true," >> vite.config.ts
+                ALLOWED_HOST=$(echo "${COOLIFY_FQDN%%,*}" | sed "s|https://||" | sed "s|:3100||")
+              echo "    allowedHosts: ['\''${ALLOWED_HOST}'\'']" >> vite.config.ts
                 echo "  }" >> vite.config.ts
                 echo "})" >> vite.config.ts
               fi

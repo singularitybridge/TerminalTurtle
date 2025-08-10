@@ -8,31 +8,24 @@ cd /app
 node dist/main.js &
 API_PID=$!
 
-# Generate password for code-server if not set
-if [ -z "$EDITOR_PASSWORD" ]; then
-    EDITOR_PASSWORD=$(openssl rand -hex 16)
-    echo "Generated editor password: $EDITOR_PASSWORD"
-fi
-
-# Update code-server config with password
+# Configure code-server for no authentication
 mkdir -p /root/.config/code-server
 cat > /root/.config/code-server/config.yaml << EOF
-bind-addr: 0.0.0.0:8443
-auth: password
-password: $EDITOR_PASSWORD
+bind-addr: 0.0.0.0:8080
+auth: none
 cert: false
 EOF
 
 # Start code-server in background with explicit port
-echo "Starting code-server on port 8443..."
-# Unset PORT to avoid conflict with main app
-env -u PORT code-server /data/workspace --bind-addr 0.0.0.0:8443 --auth none &
+echo "Starting code-server on port 8080..."
+# Use PASSWORD=none for no authentication
+PASSWORD=none code-server /data/workspace --bind-addr 0.0.0.0:8080 --auth none &
 EDITOR_PID=$!
 
 # Wait for API to be ready
 echo "Waiting for API server to be ready..."
 for i in {1..30}; do
-    if curl -s -f "http://localhost:$PORT/health" > /dev/null 2>&1; then
+    if curl -s -f "http://localhost:${TURTLE_API_PORT:-3000}/health" > /dev/null 2>&1; then
         echo "API server is ready!"
         break
     fi
@@ -52,15 +45,15 @@ if [ -z "$(ls -A /data/workspace 2>/dev/null)" ]; then
     case $PROJECT_TEMPLATE in
         react)
             echo "Starting React dev server..."
-            BROWSER=none HOST=0.0.0.0 PORT=$DEV_SERVER_PORT npm start &
+            BROWSER=none HOST=0.0.0.0 PORT=${APP_PORT:-3100} npm start &
             ;;
         vite)
             echo "Starting Vite dev server..."
-            npm run dev -- --host 0.0.0.0 --port $DEV_SERVER_PORT &
+            npm run dev -- --host 0.0.0.0 --port ${APP_PORT:-3100} &
             ;;
         express)
             echo "Starting Express server..."
-            NODE_APP_PORT=$NODE_APP_PORT npm run dev &
+            NODE_APP_PORT=${APP_PORT:-3100} npm run dev &
             ;;
     esac
 else
@@ -70,22 +63,21 @@ else
     # Start based on template type
     case $PROJECT_TEMPLATE in
         react)
-            BROWSER=none HOST=0.0.0.0 PORT=$DEV_SERVER_PORT npm start &
+            BROWSER=none HOST=0.0.0.0 PORT=${APP_PORT:-3100} npm start &
             ;;
         vite)
-            npm run dev -- --host 0.0.0.0 --port $DEV_SERVER_PORT &
+            npm run dev -- --host 0.0.0.0 --port ${APP_PORT:-3100} &
             ;;
         express)
-            NODE_APP_PORT=$NODE_APP_PORT npm run dev &
+            NODE_APP_PORT=${APP_PORT:-3100} npm run dev &
             ;;
     esac
 fi
 
 echo "============================================"
 echo "TerminalTurtle is ready!"
-echo "API Server: http://localhost:$PORT"
-echo "Code Editor: http://localhost:$PORT/editor?key=YOUR_API_KEY"
-echo "Editor Password: $EDITOR_PASSWORD"
+echo "API Server: http://localhost:${TURTLE_API_PORT:-3000}"
+echo "Code Editor: http://localhost:${EDITOR_PORT:-8080}"
 echo "============================================"
 
 # Keep the container running

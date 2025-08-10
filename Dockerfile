@@ -46,14 +46,15 @@ RUN npm install -g create-react-app create-next-app typescript nodemon pm2
 RUN curl -fsSL https://code-server.dev/install.sh | sh && \
     mkdir -p /root/.config/code-server && \
     # Create default config
-    echo 'bind-addr: 0.0.0.0:8443\n\
-auth: password\n\
-password: changeme\n\
+    echo 'bind-addr: 0.0.0.0:8080\n\
+auth: none\n\
 cert: false' > /root/.config/code-server/config.yaml
 
 # Set default environment variables
 ENV NODE_ENV=production \
-    PORT=8080 \
+    TURTLE_API_PORT=3000 \
+    APP_PORT=3100 \
+    EDITOR_PORT=8080 \
     WORKING_DIRECTORY=/data/workspace \
     AGENT_NAME=terminal-turtle
 
@@ -68,11 +69,11 @@ COPY --from=builder /app/dist ./dist
 RUN mkdir -p /data/workspace
 
 # Document the ports being exposed
-EXPOSE 8080 3000 4000 5173
+EXPOSE 8080 3000 3100 4000 5173
 
 # Health check to ensure service is running properly
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost:8080/health || exit 1
+    CMD curl -f http://localhost:3000/health || exit 1
 
 # Start the application
 CMD ["node", "dist/main.js"]
