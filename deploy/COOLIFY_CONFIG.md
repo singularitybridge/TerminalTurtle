@@ -52,6 +52,39 @@ ANTHROPIC_API_KEY=your-anthropic-key
 - Ensure port mapping is 4433:8443 (external:internal)
 - Code-server runs on port 8443 inside the container
 
+## Multiple Instance Deployment
+
+To deploy multiple TerminalTurtle instances on the same server, each application needs **unique ports**:
+
+### Port Planning Table
+| Instance | API Port | App Port | Editor External | Editor Internal |
+|----------|----------|----------|----------------|-----------------|
+| turtle-vite | 3000 | 3100 | 4433 | 8443 |
+| turtle-express | 3001 | 3101 | 4434 | 8443 |
+| turtle-react | 3002 | 3102 | 4435 | 8443 |
+
+### Example: Second Instance (Express)
+
+**Environment Variables:**
+```env
+PROJECT_TEMPLATE=express
+TURTLE_API_PORT=3001
+APP_PORT=3101
+EDITOR_PORT=4434
+AGENT_NAME=turtle-express
+```
+
+**Domain Configuration:**
+```
+https://turtle-express.singularitybridge.net:3101,https://api-turtle-express.singularitybridge.net:3001,https://editor-turtle-express.singularitybridge.net:8443
+```
+
+**Important Notes:**
+- Each instance needs unique **external ports** (3001, 3101, 4434)
+- Editor **always uses 8443 internally** regardless of external port
+- Create separate DNS records for each instance's subdomains
+- Use descriptive AGENT_NAME for each instance
+
 ### Testing After Deployment
 1. Check API health: `curl https://api.turtle-vite.singularitybridge.net/health`
 2. Access main app: https://turtle-vite.singularitybridge.net
