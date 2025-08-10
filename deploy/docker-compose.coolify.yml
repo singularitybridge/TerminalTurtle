@@ -87,10 +87,18 @@ services:
               cd /data/workspace
               npm init -y
               npm install express cors dotenv
-              npm install -D @types/node @types/express typescript nodemon
-              # Create basic server
-              echo "const express = require(\"express\"); const app = express(); app.get(\"/\", (req, res) => res.json({message: \"Hello from Terminal Turtle\"})); app.listen($${APP_PORT}, () => console.log(\"Server running on port $${APP_PORT}\"));" > index.js
-              PORT=$${APP_PORT} node index.js &
+              npm install -D nodemon
+              # Create basic server with proper host binding
+              echo "const express = require(\"express\"); const app = express(); app.get(\"/\", (req, res) => res.json({message: \"Hello from Terminal Turtle\"})); app.listen($${APP_PORT}, '0.0.0.0', () => console.log(\"Server running on port $${APP_PORT}\"));" > index.js
+              # Add dev script with nodemon
+              npm pkg set scripts.dev="nodemon index.js"
+              npm pkg set scripts.start="node index.js"
+              # Use nodemon for hot reload by default
+              if [ "$${DISABLE_HOT_RELOAD}" = "true" ]; then
+                PORT=$${APP_PORT} npm start &
+              else
+                PORT=$${APP_PORT} npm run dev &
+              fi
               ;;
           esac
         else
@@ -120,7 +128,18 @@ services:
               BROWSER=none HOST=0.0.0.0 PORT=$${APP_PORT} npm start &
               ;;
             express)
-              PORT=$${APP_PORT} node index.js &
+              # Check if package.json has dev script with nodemon
+              if [ -f package.json ] && grep -q '"dev":' package.json; then
+                # Use nodemon for hot reload by default
+                if [ "$${DISABLE_HOT_RELOAD}" = "true" ]; then
+                  PORT=$${APP_PORT} npm start &
+                else
+                  PORT=$${APP_PORT} npm run dev &
+                fi
+              else
+                # Fallback to direct node execution
+                PORT=$${APP_PORT} node index.js &
+              fi
               ;;
           esac
         fi

@@ -40,38 +40,74 @@ if [ -z "$(ls -A /data/workspace 2>/dev/null)" ]; then
     # Run initialization script
     /app/init-project.sh
     
-    # Start development server
+    # Start development server with hot reload support
     cd /data/workspace
-    case $PROJECT_TEMPLATE in
-        react)
-            echo "Starting React dev server..."
-            BROWSER=none HOST=0.0.0.0 PORT=${APP_PORT:-3100} npm start &
-            ;;
-        vite)
-            echo "Starting Vite dev server..."
-            npm run dev -- --host 0.0.0.0 --port ${APP_PORT:-3100} &
-            ;;
-        express)
-            echo "Starting Express server..."
-            NODE_APP_PORT=${APP_PORT:-3100} npm run dev &
-            ;;
-    esac
+    if [ "${DISABLE_HOT_RELOAD}" = "true" ]; then
+        echo "Hot reload is disabled, using production start scripts..."
+        case $PROJECT_TEMPLATE in
+            react)
+                echo "Starting React server (no hot reload)..."
+                BROWSER=none HOST=0.0.0.0 PORT=${APP_PORT:-3100} npm start &
+                ;;
+            vite)
+                echo "Building and starting Vite server (no hot reload)..."
+                npm run build && npm run preview -- --host 0.0.0.0 --port ${APP_PORT:-3100} &
+                ;;
+            express)
+                echo "Starting Express server (no hot reload)..."
+                NODE_APP_PORT=${APP_PORT:-3100} npm start &
+                ;;
+        esac
+    else
+        echo "Hot reload is enabled (default)..."
+        case $PROJECT_TEMPLATE in
+            react)
+                echo "Starting React dev server with hot reload..."
+                BROWSER=none HOST=0.0.0.0 PORT=${APP_PORT:-3100} npm start &
+                ;;
+            vite)
+                echo "Starting Vite dev server with hot reload..."
+                npm run dev -- --host 0.0.0.0 --port ${APP_PORT:-3100} &
+                ;;
+            express)
+                echo "Starting Express server with nodemon hot reload..."
+                NODE_APP_PORT=${APP_PORT:-3100} npm run dev &
+                ;;
+        esac
+    fi
 else
     echo "Workspace already initialized, starting existing project..."
     cd /data/workspace
     
-    # Start based on template type
-    case $PROJECT_TEMPLATE in
-        react)
-            BROWSER=none HOST=0.0.0.0 PORT=${APP_PORT:-3100} npm start &
-            ;;
-        vite)
-            npm run dev -- --host 0.0.0.0 --port ${APP_PORT:-3100} &
-            ;;
-        express)
-            NODE_APP_PORT=${APP_PORT:-3100} npm run dev &
-            ;;
-    esac
+    # Start based on template type with hot reload support
+    # Check if hot reload is disabled (defaults to enabled)
+    if [ "${DISABLE_HOT_RELOAD}" = "true" ]; then
+        echo "Hot reload is disabled, using production start scripts..."
+        case $PROJECT_TEMPLATE in
+            react)
+                BROWSER=none HOST=0.0.0.0 PORT=${APP_PORT:-3100} npm start &
+                ;;
+            vite)
+                npm run build && npm run preview -- --host 0.0.0.0 --port ${APP_PORT:-3100} &
+                ;;
+            express)
+                NODE_APP_PORT=${APP_PORT:-3100} npm start &
+                ;;
+        esac
+    else
+        echo "Hot reload is enabled (default)..."
+        case $PROJECT_TEMPLATE in
+            react)
+                BROWSER=none HOST=0.0.0.0 PORT=${APP_PORT:-3100} npm start &
+                ;;
+            vite)
+                npm run dev -- --host 0.0.0.0 --port ${APP_PORT:-3100} &
+                ;;
+            express)
+                NODE_APP_PORT=${APP_PORT:-3100} npm run dev &
+                ;;
+        esac
+    fi
 fi
 
 echo "============================================"

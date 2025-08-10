@@ -267,7 +267,7 @@ case $COMMAND in
         
     remote)
         # Manage remote instances deployed on Coolify/cloud
-        "$BASE_DIR/turtle-remote.sh" "$@"
+        "$BASE_DIR/scripts/turtle-remote.sh" "$@"
         ;;
         
     help|*)

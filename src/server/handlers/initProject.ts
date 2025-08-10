@@ -22,17 +22,17 @@ const PROJECT_CONFIGS: { [key: string]: ProjectConfig } = {
   },
   node: {
     command: 'npm init -y',
-    description: 'Basic Node.js project',
+    description: 'Basic Node.js project with hot reload',
     defaultFiles: {
       'index.js': `const express = require('express');
 const app = express();
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.NODE_APP_PORT || process.env.PORT || 4000;
 
 app.get('/', (req, res) => {
   res.json({ message: 'Hello from Terminal Turtle!' });
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(\`Server running on port \${PORT}\`);
 });`,
       '.gitignore': 'node_modules/\n.env\n*.log'
@@ -99,11 +99,19 @@ export const handleInitProject = async (req: AuthenticatedRequest, res: Response
 
       // Install additional dependencies for Node.js projects
       if (projectType === 'node') {
+        // Install dependencies including nodemon for hot reload
         const { resultPromise: npmInstall } = executeCommand(
-          'npm install express cors dotenv',
+          'npm install express cors dotenv && npm install --save-dev nodemon',
           workingDirectory
         );
         await npmInstall;
+        
+        // Add dev script with nodemon for hot reload
+        const { resultPromise: addScript } = executeCommand(
+          'npm pkg set scripts.dev="nodemon index.js" && npm pkg set scripts.start="node index.js"',
+          workingDirectory
+        );
+        await addScript;
       }
 
       updateTask(task.id, {
