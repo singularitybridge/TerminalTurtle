@@ -11,15 +11,15 @@ API_PID=$!
 # Configure code-server for no authentication
 mkdir -p /root/.config/code-server
 cat > /root/.config/code-server/config.yaml << EOF
-bind-addr: 0.0.0.0:8080
+bind-addr: 0.0.0.0:8443
 auth: none
 cert: false
 EOF
 
 # Start code-server in background with explicit port
-echo "Starting code-server on port 8080..."
+echo "Starting code-server on port 8443..."
 # Use PASSWORD=none for no authentication
-PASSWORD=none code-server /data/workspace --bind-addr 0.0.0.0:8080 --auth none &
+PASSWORD=none code-server /data/workspace --bind-addr 0.0.0.0:8443 --auth none &
 EDITOR_PID=$!
 
 # Wait for API to be ready
@@ -77,7 +77,7 @@ fi
 echo "============================================"
 echo "TerminalTurtle is ready!"
 echo "API Server: http://localhost:${TURTLE_API_PORT:-3000}"
-echo "Code Editor: http://localhost:${EDITOR_PORT:-8080}"
+echo "Code Editor: http://localhost:${EDITOR_PORT:-8443}"
 echo "============================================"
 
 # Keep the container running
