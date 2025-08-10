@@ -45,18 +45,18 @@ services:
       start_period: 60s
     command: |
       bash -c '
-        # Start code-server in background on port 8443
+        # Start code-server in background on port 8080
         echo "Starting code-server..."
         PASSWORD=none code-server /data/workspace --bind-addr 0.0.0.0:8080 --auth none &
         
         # Start the main application
         node dist/main.js &
-        API_PID=$!
+        API_PID=$$!
         
         # Initialize project if workspace is empty
-        if [ -z "$(ls -A /data/workspace 2>/dev/null)" ]; then
-          echo "Initializing ${PROJECT_TEMPLATE} project..."
-          case ${PROJECT_TEMPLATE} in
+        if [ -z "$$(ls -A /data/workspace 2>/dev/null)" ]; then
+          echo "Initializing $${PROJECT_TEMPLATE} project..."
+          case $${PROJECT_TEMPLATE} in
             vite)
               cd /data/workspace
               npm create vite@latest . -- --template react-ts --yes
@@ -69,10 +69,10 @@ services:
               echo "  plugins: [react()]," >> vite.config.ts
               echo "  server: {" >> vite.config.ts
               echo "    host: '\''0.0.0.0'\''," >> vite.config.ts
-              echo "    port: ${APP_PORT:-3100}," >> vite.config.ts
+              echo "    port: $${APP_PORT:-3100}," >> vite.config.ts
               echo "    strictPort: true," >> vite.config.ts
-              ALLOWED_HOST=$(echo "${COOLIFY_FQDN%%,*}" | sed "s|https://||" | sed "s|:3100||")
-              echo "    allowedHosts: ['\''${ALLOWED_HOST}'\'']" >> vite.config.ts
+              ALLOWED_HOST=$$(echo "$${COOLIFY_FQDN%%,*}" | sed "s|https://||" | sed "s|:3100||")
+              echo "    allowedHosts: ['\''"$$ALLOWED_HOST"'\'']" >> vite.config.ts
               echo "  }" >> vite.config.ts
               echo "})" >> vite.config.ts
               npm run dev &
@@ -81,7 +81,7 @@ services:
               cd /data/workspace
               npx create-react-app . --template typescript --use-npm
               NODE_ENV=development npm install --include=dev
-              BROWSER=none HOST=0.0.0.0 PORT=${APP_PORT} npm start &
+              BROWSER=none HOST=0.0.0.0 PORT=$${APP_PORT} npm start &
               ;;
             express)
               cd /data/workspace
@@ -89,14 +89,14 @@ services:
               npm install express cors dotenv
               npm install -D @types/node @types/express typescript nodemon
               # Create basic server
-              echo "const express = require(\"express\"); const app = express(); app.get(\"/\", (req, res) => res.json({message: \"Hello from Terminal Turtle\"})); app.listen(${APP_PORT}, () => console.log(\"Server running on port ${APP_PORT}\"));" > index.js
-              PORT=${APP_PORT} node index.js &
+              echo "const express = require(\"express\"); const app = express(); app.get(\"/\", (req, res) => res.json({message: \"Hello from Terminal Turtle\"})); app.listen($${APP_PORT}, () => console.log(\"Server running on port $${APP_PORT}\"));" > index.js
+              PORT=$${APP_PORT} node index.js &
               ;;
           esac
         else
           echo "Workspace exists, starting existing project..."
           cd /data/workspace
-          case ${PROJECT_TEMPLATE} in
+          case $${PROJECT_TEMPLATE} in
             vite)
               # Ensure vite.config.ts exists with correct port
               if [ ! -f vite.config.ts ]; then
@@ -107,26 +107,26 @@ services:
                 echo "  plugins: [react()]," >> vite.config.ts
                 echo "  server: {" >> vite.config.ts
                 echo "    host: '\''0.0.0.0'\''," >> vite.config.ts
-                echo "    port: ${APP_PORT:-3100}," >> vite.config.ts
+                echo "    port: $${APP_PORT:-3100}," >> vite.config.ts
                 echo "    strictPort: true," >> vite.config.ts
-                ALLOWED_HOST=$(echo "${COOLIFY_FQDN%%,*}" | sed "s|https://||" | sed "s|:3100||")
-              echo "    allowedHosts: ['\''${ALLOWED_HOST}'\'']" >> vite.config.ts
+                ALLOWED_HOST=$$(echo "$${COOLIFY_FQDN%%,*}" | sed "s|https://||" | sed "s|:3100||")
+                echo "    allowedHosts: ['\''"$$ALLOWED_HOST"'\'']" >> vite.config.ts
                 echo "  }" >> vite.config.ts
                 echo "})" >> vite.config.ts
               fi
               npm run dev &
               ;;
             react)
-              BROWSER=none HOST=0.0.0.0 PORT=${APP_PORT} npm start &
+              BROWSER=none HOST=0.0.0.0 PORT=$${APP_PORT} npm start &
               ;;
             express)
-              PORT=${APP_PORT} node index.js &
+              PORT=$${APP_PORT} node index.js &
               ;;
           esac
         fi
         
         # Keep container running
-        wait $API_PID
+        wait $$API_PID
       '
 
 volumes:
